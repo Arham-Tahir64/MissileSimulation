@@ -29,6 +29,17 @@ interface ArcHandle {
   remaining: Cesium.Entity; // dashed future arc
 }
 
+function setConstantValue<T>(
+  property: Cesium.Property | undefined,
+  value: T,
+): Cesium.ConstantProperty {
+  if (property && 'setValue' in property && typeof property.setValue === 'function') {
+    property.setValue(value);
+    return property as Cesium.ConstantProperty;
+  }
+  return new Cesium.ConstantProperty(value);
+}
+
 export function TrajectoryLayer({ viewer, entityDefinitions, entities }: Props) {
   const arcDataRef    = useRef<Map<string, ArcData>>(new Map());
   const arcHandlesRef = useRef<Map<string, ArcHandle>>(new Map());
@@ -126,14 +137,26 @@ export function TrajectoryLayer({ viewer, entityDefinitions, entities }: Props) 
       const remainingPositions = arcData.positions.slice(splitIdx);
 
       // Update completed (solid) arc
-      (handle.completed.polyline!.show      as Cesium.ConstantProperty).setValue(completedPositions.length >= 2);
-      (handle.completed.polyline!.positions as Cesium.ConstantProperty).setValue(completedPositions);
+      handle.completed.polyline!.show = setConstantValue(
+        handle.completed.polyline!.show,
+        completedPositions.length >= 2,
+      );
+      handle.completed.polyline!.positions = setConstantValue(
+        handle.completed.polyline!.positions,
+        completedPositions,
+      );
 
       // Update remaining (dashed) arc — hide once terminated or fully travelled
       const showRemaining = !isTerminated && remainingPositions.length >= 2;
-      (handle.remaining.polyline!.show      as Cesium.ConstantProperty).setValue(showRemaining);
+      handle.remaining.polyline!.show = setConstantValue(
+        handle.remaining.polyline!.show,
+        showRemaining,
+      );
       if (showRemaining) {
-        (handle.remaining.polyline!.positions as Cesium.ConstantProperty).setValue(remainingPositions);
+        handle.remaining.polyline!.positions = setConstantValue(
+          handle.remaining.polyline!.positions,
+          remainingPositions,
+        );
       }
     }
   }, [viewer, entities]);

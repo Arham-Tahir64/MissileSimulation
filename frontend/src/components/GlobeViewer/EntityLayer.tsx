@@ -10,6 +10,28 @@ interface Props {
 
 const TRAIL_MAX_POINTS = 80;
 
+function setConstantValue<T>(
+  property: Cesium.Property | undefined,
+  value: T,
+): Cesium.ConstantProperty {
+  if (property && 'setValue' in property && typeof property.setValue === 'function') {
+    property.setValue(value);
+    return property as Cesium.ConstantProperty;
+  }
+  return new Cesium.ConstantProperty(value);
+}
+
+function setPositionValue(
+  property: Cesium.PositionProperty | undefined,
+  value: Cesium.Cartesian3,
+): Cesium.ConstantPositionProperty {
+  if (property && 'setValue' in property && typeof property.setValue === 'function') {
+    property.setValue(value);
+    return property as Cesium.ConstantPositionProperty;
+  }
+  return new Cesium.ConstantPositionProperty(value);
+}
+
 export function EntityLayer({ viewer, entities }: Props) {
   const entityMapRef  = useRef<Map<string, Cesium.Entity>>(new Map());
   const trailMapRef   = useRef<Map<string, Cesium.Entity>>(new Map());
@@ -39,16 +61,17 @@ export function EntityLayer({ viewer, entities }: Props) {
 
       if (existing) {
         // ── Update position ────────────────────────────────────────────
-        (existing.position as Cesium.ConstantPositionProperty).setValue(position);
+        existing.position = setPositionValue(existing.position, position);
 
         // ── Phase 2: update billboard orientation / visibility ─────────
         if (existing.billboard) {
           const displayColor = isTerminated
             ? Cesium.Color.GRAY.withAlpha(0.4)
             : color;
-          (existing.billboard.color    as Cesium.ConstantProperty).setValue(displayColor);
-          (existing.billboard.show     as Cesium.ConstantProperty).setValue(!isInactive);
-          (existing.billboard.rotation as Cesium.ConstantProperty).setValue(
+          existing.billboard.color = setConstantValue(existing.billboard.color, displayColor);
+          existing.billboard.show = setConstantValue(existing.billboard.show, !isInactive);
+          existing.billboard.rotation = setConstantValue(
+            existing.billboard.rotation,
             -Cesium.Math.toRadians(state.heading_deg),
           );
         }
@@ -56,7 +79,7 @@ export function EntityLayer({ viewer, entities }: Props) {
           const displayColor = isTerminated
             ? Cesium.Color.GRAY.withAlpha(0.4)
             : color;
-          (existing.point.color as Cesium.ConstantProperty).setValue(displayColor);
+          existing.point.color = setConstantValue(existing.point.color, displayColor);
         }
       } else {
         // ── Phase 2: create entity with billboard icon ─────────────────
@@ -129,7 +152,10 @@ export function EntityLayer({ viewer, entities }: Props) {
         if (history.length >= 2) {
           const existingTrail = trailMapRef.current.get(state.id);
           if (existingTrail) {
-            (existingTrail.polyline!.positions as Cesium.ConstantProperty).setValue([...history]);
+            existingTrail.polyline!.positions = setConstantValue(
+              existingTrail.polyline!.positions,
+              [...history],
+            );
           } else {
             const trailEntity = viewer.entities.add({
               id: `trail_${state.id}`,
