@@ -36,6 +36,9 @@ function setPositionValue(
 export function EntityLayer({ viewer, entities }: Props) {
   const mode = useCameraStore((s) => s.mode);
   const trackedEntityId = useCameraStore((s) => s.trackedEntityId);
+  const setMode = useCameraStore((s) => s.setMode);
+  const setTrackedEntityId = useCameraStore((s) => s.setTrackedEntityId);
+  const setHudExpanded = useCameraStore((s) => s.setHudExpanded);
   const entityMapRef  = useRef<Map<string, Cesium.Entity>>(new Map());
   const trailMapRef   = useRef<Map<string, Cesium.Entity>>(new Map());
   const historyRef    = useRef<Map<string, Cesium.Cartesian3[]>>(new Map());
@@ -216,6 +219,34 @@ export function EntityLayer({ viewer, entities }: Props) {
       prevStatusRef.current.clear();
     };
   }, [viewer]);
+
+  useEffect(() => {
+    if (!viewer || entities.length === 0) return;
+
+    const entityIds = new Set(
+      entities
+        .filter((entity) => entity.type !== 'sensor')
+        .map((entity) => entity.id),
+    );
+
+    const handleSelectedEntityChanged = (selectedEntity: Cesium.Entity | undefined) => {
+      const rawId = selectedEntity?.id;
+      if (typeof rawId !== 'string') return;
+
+      const normalizedId = rawId.startsWith('trail_') ? rawId.slice(6) : rawId;
+      if (!entityIds.has(normalizedId)) return;
+
+      setMode('follow');
+      setTrackedEntityId(normalizedId);
+      setHudExpanded(true);
+    };
+
+    viewer.selectedEntityChanged.addEventListener(handleSelectedEntityChanged);
+
+    return () => {
+      viewer.selectedEntityChanged.removeEventListener(handleSelectedEntityChanged);
+    };
+  }, [entities, setHudExpanded, setMode, setTrackedEntityId, viewer]);
 
   return null;
 }

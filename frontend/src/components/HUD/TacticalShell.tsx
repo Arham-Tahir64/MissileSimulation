@@ -1,18 +1,19 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useCameraStore } from '../../store/cameraStore';
 import { usePlayback } from '../Playback/usePlayback';
 import { usePlaybackStore } from '../../store/playbackStore';
 import { usePlacementStore } from '../../store/placementStore';
 import { useScenarioStore } from '../../store/scenarioStore';
 import { useSimulationStore } from '../../store/simulationStore';
-import { resetViewerToDefaultView } from '../../services/viewerRegistry';
+import { getViewer, resetViewerToDefaultView } from '../../services/viewerRegistry';
 import { wsClient } from '../../services/wsClient';
-import { computeFlightTimeS, haversineDistanceM } from '../../utils/cesiumHelpers';
+import { computeFlightTimeS, flyToScenario, haversineDistanceM } from '../../utils/cesiumHelpers';
 import { formatSimTime, timeToFraction } from '../../utils/timeUtils';
 
 const SPEED_OPTIONS = [0.5, 1, 2, 4, 8];
 
 export function TacticalShell() {
+  const [isFleetHudOpen, setFleetHudOpen] = useState(true);
   const {
     mode,
     trackedEntityId,
@@ -32,12 +33,19 @@ export function TacticalShell() {
   const placementReset = usePlacementStore((s) => s.reset);
 
   const activeEntities = entities.filter((entity) => entity.status === 'active');
+  const fleetEntries = (activeScenario?.entities ?? []).map((definition) => ({
+    definition,
+    state: entities.find((entity) => entity.id === definition.id) ?? null,
+  }));
   const trackedEntity =
     entities.find((entity) => entity.id === trackedEntityId)
     ?? activeEntities[0]
+    ?? fleetEntries[0]?.state
     ?? entities[0]
     ?? null;
-  const trackedDefinition = activeScenario?.entities.find((entity) => entity.id === trackedEntity?.id)
+  const trackedDefinition = activeScenario?.entities.find(
+    (entity) => entity.id === (trackedEntityId ?? trackedEntity?.id),
+  )
     ?? activeScenario?.entities[0]
     ?? null;
   const terminalTarget = trackedDefinition?.target
@@ -52,6 +60,16 @@ export function TacticalShell() {
   const distanceToTargetKm = trackedEntity && terminalTarget
     ? haversineDistanceM(trackedEntity.position, terminalTarget) / 1_000
     : 0;
+  const totalMissiles = fleetEntries.length;
+  const scheduledMissiles = fleetEntries.filter((entry) => entry.state?.status === 'inactive').length;
+  const completedMissiles = fleetEntries.filter((entry) => {
+    const statusValue = entry.state?.status;
+    return statusValue === 'missed' || statusValue === 'destroyed' || statusValue === 'intercepted';
+  }).length;
+  const selectedFleetId = trackedEntityId ?? trackedDefinition?.id ?? trackedEntity?.id ?? null;
+  const selectedFleetIndex = selectedFleetId
+    ? fleetEntries.findIndex((entry) => entry.definition.id === selectedFleetId)
+    : -1;
   const showResetToGlobe = status === 'completed';
   const alertText = trackedEntity
     ? trackedEntity.status === 'active'
@@ -68,6 +86,28 @@ export function TacticalShell() {
       setTrackedEntityId(trackedEntity.id);
     }
   }, [trackedEntity, trackedEntityId, setTrackedEntityId]);
+
+  const handleGlobeView = () => {
+    setMode('tactical');
+    setHudExpanded(false);
+    const viewer = getViewer();
+    if (viewer && activeScenario) {
+      flyToScenario(viewer, activeScenario);
+    }
+  };
+
+  const selectTrackedMissile = (missileId: string) => {
+    setMode('follow');
+    setTrackedEntityId(missileId);
+    setHudExpanded(true);
+  };
+
+  const cycleTrackedMissile = (direction: -1 | 1) => {
+    if (fleetEntries.length === 0) return;
+    const currentIndex = selectedFleetIndex >= 0 ? selectedFleetIndex : 0;
+    const nextIndex = (currentIndex + direction + fleetEntries.length) % fleetEntries.length;
+    selectTrackedMissile(fleetEntries[nextIndex].definition.id);
+  };
 
   const handleAbort = () => {
     wsClient.disconnect();
@@ -117,6 +157,18 @@ export function TacticalShell() {
         <div style={styles.railBlock}>
           <div style={styles.blockLabel}>TRACK</div>
           <button
+            onClick={handleGlobeView}
+            style={styles.ghostButton}
+          >
+            GLOBE_VIEW
+          </button>
+          <button
+            onClick={() => setFleetHudOpen((value) => !value)}
+            style={styles.ghostButton}
+          >
+            {isFleetHudOpen ? 'HIDE_FLEET_HUD' : 'OPEN_FLEET_HUD'}
+          </button>
+          <button
             onClick={() => setHudExpanded(!isHudExpanded)}
             style={styles.ghostButton}
           >
@@ -130,20 +182,83 @@ export function TacticalShell() {
           </button>
         </div>
 
+        {isFleetHudOpen && (
+          <div style={styles.fleetPanel}>
+            <div style={styles.panelTitle}>GENERAL_HUD</div>
+            <div style={styles.fleetSummary}>
+              <FleetStat label="TOTAL" value={String(totalMissiles)} />
+              <FleetStat label="ACTIVE" value={String(activeEntities.length)} />
+              <FleetStat label="SCHEDULED" value={String(scheduledMissiles)} />
+              <FleetStat label="DONE" value={String(completedMissiles)} />
+            </div>
+            <div style={styles.fleetToolbar}>
+              <span style={styles.fleetToolbarLabel}>MISSILE_TRACKS</span>
+              <div style={styles.fleetToolbarControls}>
+                <button
+                  onClick={() => cycleTrackedMissile(-1)}
+                  disabled={fleetEntries.length <= 1}
+                  style={styles.cycleButton}
+                >
+                  PREV
+                </button>
+                <span style={styles.cycleIndex}>
+                  {fleetEntries.length === 0
+                    ? '0 / 0'
+                    : `${Math.max(selectedFleetIndex, 0) + 1} / ${fleetEntries.length}`}
+                </span>
+                <button
+                  onClick={() => cycleTrackedMissile(1)}
+                  disabled={fleetEntries.length <= 1}
+                  style={styles.cycleButton}
+                >
+                  NEXT
+                </button>
+              </div>
+            </div>
+            <div style={styles.fleetList}>
+              {fleetEntries.map(({ definition, state }) => {
+                const selected = selectedFleetId === definition.id;
+                const liveStatus = state?.status ?? 'inactive';
+                return (
+                  <button
+                    key={definition.id}
+                    onClick={() => selectTrackedMissile(definition.id)}
+                    style={{
+                      ...styles.fleetRow,
+                      borderColor: selected ? 'rgba(0,229,255,0.4)' : 'rgba(255,255,255,0.08)',
+                      background: selected ? 'rgba(0,229,255,0.08)' : 'rgba(10,16,22,0.54)',
+                    }}
+                  >
+                    <div style={styles.fleetRowTop}>
+                      <span style={styles.fleetName}>{definition.id}</span>
+                      <span style={styles.fleetStatus}>{liveStatus}</span>
+                    </div>
+                    <div style={styles.fleetMeta}>
+                      {definition.type} // T+{Math.round(definition.launch_time_s)}s
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         <button onClick={handleAbort} style={styles.engageButton}>
           {showResetToGlobe ? 'RESET_TO_GLOBE' : 'EXIT_TRACK'}
         </button>
       </div>
 
-      <div style={styles.centerHud}>
-        <div style={styles.reticle}>
-          <span style={styles.reticleDot} />
+      {(isHudExpanded || mode === 'follow') && (
+        <div style={styles.centerHud}>
+          <div style={styles.reticle}>
+            <span style={styles.reticleDot} />
+          </div>
+          <div style={styles.trackLabel}>
+            <span style={styles.trackEyebrow}>ACTIVE_TRACK</span>
+            <span style={styles.trackValue}>{trackedEntity?.id ?? 'NO_TARGET'}</span>
+          </div>
         </div>
-        <div style={styles.trackLabel}>
-          <span style={styles.trackEyebrow}>ACTIVE_TRACK</span>
-          <span style={styles.trackValue}>{trackedEntity?.id ?? 'NO_TARGET'}</span>
-        </div>
-      </div>
+      )}
 
       {showResetToGlobe && (
         <div style={styles.completionPrompt}>
@@ -251,6 +366,15 @@ export function TacticalShell() {
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+function FleetStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div style={styles.fleetStat}>
+      <span style={styles.fleetStatLabel}>{label}</span>
+      <span style={styles.fleetStatValue}>{value}</span>
     </div>
   );
 }
@@ -469,6 +593,116 @@ const styles: Record<string, React.CSSProperties> = {
     flexDirection: 'column',
     gap: 10,
     paddingTop: 8,
+  },
+  fleetPanel: {
+    ...glassPanel,
+    padding: '12px 12px 10px',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 12,
+    flex: 1,
+    minHeight: 0,
+    overflow: 'hidden',
+  },
+  fleetSummary: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+    gap: 8,
+  },
+  fleetStat: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 4,
+    background: 'rgba(10,16,22,0.48)',
+    padding: '8px 10px',
+  },
+  fleetStatLabel: {
+    color: '#718896',
+    fontSize: 9,
+    letterSpacing: '0.16em',
+    textTransform: 'uppercase',
+  },
+  fleetStatValue: {
+    color: '#dff8ff',
+    fontSize: 20,
+    fontWeight: 700,
+    fontFamily: "'Space Grotesk', 'Inter', sans-serif",
+  },
+  fleetList: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 8,
+    flex: 1,
+    minHeight: 0,
+    overflowY: 'auto',
+    paddingRight: 4,
+  },
+  fleetToolbar: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 12,
+    paddingTop: 4,
+  },
+  fleetToolbarLabel: {
+    color: '#8ba0aa',
+    fontSize: 10,
+    letterSpacing: '0.18em',
+    textTransform: 'uppercase',
+  },
+  fleetToolbarControls: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 8,
+  },
+  cycleButton: {
+    border: '1px solid rgba(0, 218, 243, 0.14)',
+    background: 'rgba(12, 20, 26, 0.48)',
+    color: '#a8bac3',
+    padding: '6px 8px',
+    fontSize: 10,
+    letterSpacing: '0.14em',
+    textTransform: 'uppercase',
+    cursor: 'pointer',
+  },
+  cycleIndex: {
+    color: '#dff8ff',
+    fontSize: 10,
+    letterSpacing: '0.16em',
+    fontFamily: 'monospace',
+    minWidth: 42,
+    textAlign: 'center',
+  },
+  fleetRow: {
+    border: '1px solid rgba(255,255,255,0.08)',
+    padding: '10px 10px 9px',
+    textAlign: 'left',
+    cursor: 'pointer',
+  },
+  fleetRowTop: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    gap: 10,
+    alignItems: 'center',
+  },
+  fleetName: {
+    color: '#dff8ff',
+    fontSize: 12,
+    fontWeight: 700,
+    letterSpacing: '0.08em',
+  },
+  fleetStatus: {
+    color: '#8ea4af',
+    fontSize: 10,
+    textTransform: 'uppercase',
+    letterSpacing: '0.14em',
+  },
+  fleetMeta: {
+    color: '#70838d',
+    fontSize: 10,
+    marginTop: 6,
+    fontFamily: 'monospace',
+    textTransform: 'uppercase',
   },
   blockLabel: {
     color: '#6d8089',

@@ -4,17 +4,29 @@ import { EntityType } from '../../types/entity';
 
 /** Floating panel — lets the user pick a missile type to begin placement. */
 export function MissileTypePicker() {
-  const { phase, missileType, selectType, reset } = usePlacementStore();
+  const { phase, missileType, placements, selectType, clearCurrent, reset } = usePlacementStore();
 
   const isDisabled = phase === 'simulating';
 
   return (
     <div style={styles.panel}>
       <div style={styles.header}>
-        <span style={styles.title}>Missile Type</span>
-        {phase !== 'idle' && !isDisabled && (
-          <button onClick={reset} style={styles.cancelBtn}>✕ Cancel</button>
-        )}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <span style={styles.title}>Missile Type</span>
+          {placements.length > 0 && (
+            <span style={styles.queueCount}>
+              Queue: {placements.length}
+            </span>
+          )}
+        </div>
+        <div style={{ display: 'flex', gap: 6 }}>
+          {phase !== 'idle' && !isDisabled && (
+            <button onClick={clearCurrent} style={styles.cancelBtn}>Cancel Current</button>
+          )}
+          {placements.length > 0 && !isDisabled && (
+            <button onClick={reset} style={styles.cancelBtn}>Reset All</button>
+          )}
+        </div>
       </div>
 
       <div style={styles.list}>
@@ -82,7 +94,7 @@ function InstructionHint({ phase }: { phase: PlacementPhase }) {
     idle:            'Select a type to begin',
     placing_origin:  '① Click globe — set launch origin',
     origin_set:      '② Click within radius — set target',
-    target_set:      '③ Click LAUNCH to begin simulation',
+    target_set:      '③ Queue this missile or launch the scenario',
     simulating:      'Simulation running…',
   };
 
@@ -129,6 +141,13 @@ const styles: Record<string, React.CSSProperties> = {
     padding: '2px 8px',
     fontSize: 11,
     cursor: 'pointer',
+  },
+  queueCount: {
+    color: '#63b3ed',
+    fontSize: 10,
+    fontFamily: 'monospace',
+    letterSpacing: '0.08em',
+    textTransform: 'uppercase',
   },
   list: {
     display: 'flex',

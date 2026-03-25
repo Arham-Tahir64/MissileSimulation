@@ -17,6 +17,7 @@ import { useCameraStore } from './store/cameraStore';
  */
 export function App() {
   const phase  = usePlacementStore((s) => s.phase);
+  const placements = usePlacementStore((s) => s.placements);
   const status = useSimulationStore((s) => s.status);
   const resetCamera = useCameraStore((s) => s.reset);
 
@@ -42,7 +43,7 @@ export function App() {
         </div>
       )}
 
-      {phase === 'target_set' && (
+      {!showSimulationHud && (phase === 'target_set' || placements.length > 0) && (
         <div style={styles.bottom}>
           <LaunchPanel />
         </div>
