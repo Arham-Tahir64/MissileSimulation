@@ -19,8 +19,10 @@ export function createInitialCameraRig(target: Cesium.Cartesian3): CameraRigStat
 }
 
 export function createChaseRig(entity: EntityState, preset: 'chase' | 'wide'): CameraRigState {
-  const heading = Cesium.Math.toRadians(entity.heading_deg + 180);
-  const pitchBias = preset === 'wide' ? -28 : -16;
+  const heading = Cesium.Math.toRadians(
+    entity.heading_deg + (preset === 'wide' ? 104 : 180),
+  );
+  const pitchBias = preset === 'wide' ? -40 : -16;
   const pitch = Cesium.Math.toRadians(
     clamp(pitchBias - entity.pitch_deg * 0.45, -68, -8),
   );
@@ -30,11 +32,11 @@ export function createChaseRig(entity: EntityState, preset: 'chase' | 'wide'): C
     Math.max(0, entity.position.alt),
   );
   const range = clamp(
-    (preset === 'wide' ? 3_400 : 1_800)
-      + entity.velocity_ms * 0.9
-      + entity.position.alt * 0.015,
-    preset === 'wide' ? 2_200 : 1_100,
-    preset === 'wide' ? 12_000 : 6_800,
+    (preset === 'wide' ? 82_000 : 1_800)
+      + entity.velocity_ms * (preset === 'wide' ? 6.2 : 0.9)
+      + entity.position.alt * (preset === 'wide' ? 0.42 : 0.015),
+    preset === 'wide' ? 48_000 : 1_100,
+    preset === 'wide' ? 280_000 : 6_800,
   );
 
   return { target, heading, pitch, range };

@@ -1,10 +1,11 @@
-import { usePlacementStore } from '../../store/placementStore';
+import { usePlacementStore, PlannedPlacement, PlannedLaunchPlacement } from '../../store/placementStore';
 import { useScenarioStore } from '../../store/scenarioStore';
 import { usePlaybackStore } from '../../store/playbackStore';
 import { useCameraStore } from '../../store/cameraStore';
 import { wsClient } from '../../services/wsClient';
 import { buildScenario } from '../../utils/scenarioBuilder';
 import { getMissileTypeConfig, estimateFlightTimeS } from '../../config/missileTypes';
+import { getDefenseAssetConfig } from '../../config/defenseAssets';
 import { haversineDistanceM } from '../../utils/cesiumHelpers';
 
 export function LaunchPanel() {
@@ -26,14 +27,24 @@ export function LaunchPanel() {
   const { setActiveScenario } = useScenarioStore();
   const { setDuration, setPlaying } = usePlaybackStore();
   const primeFollow = useCameraStore((s) => s.primeFollow);
+  const setMode = useCameraStore((s) => s.setMode);
+  const setTrackedEntityId = useCameraStore((s) => s.setTrackedEntityId);
+  const setHudExpanded = useCameraStore((s) => s.setHudExpanded);
 
   const draftReady = phase === 'target_set' && Boolean(missileType && origin && target);
-  const draftPlacement = draftReady && missileType && origin && target
-    ? { id: 'draft', missileType, origin, target, launchTimeS }
+  const draftPlacement: PlannedLaunchPlacement | null = draftReady && missileType && origin && target
+    ? {
+      id: 'draft',
+      kind: 'missile',
+      missileType,
+      origin,
+      target,
+      launchTimeS,
+    }
     : null;
   const scenarioPlacements = [
-    ...placements.map(({ id: _id, ...placement }) => placement),
-    ...(draftPlacement ? [{ ...draftPlacement, id: undefined }].map(({ id: _id, ...placement }) => placement) : []),
+    ...placements,
+    ...(draftPlacement ? [draftPlacement] : []),
   ];
 
   if (phase === 'simulating' || (placements.length === 0 && !draftPlacement)) return null;
@@ -41,15 +52,28 @@ export function LaunchPanel() {
   const handleLaunch = () => {
     if (scenarioPlacements.length === 0) return;
 
-    const orderedPlacements = [...scenarioPlacements].sort(
-      (a, b) => (a.launchTimeS ?? 0) - (b.launchTimeS ?? 0),
-    );
+    const orderedPlacements = [...scenarioPlacements].sort((a, b) => {
+      if (a.kind !== b.kind) return a.kind === 'asset' ? -1 : 1;
+      if (a.kind === 'missile' && b.kind === 'missile') {
+        return (a.launchTimeS ?? 0) - (b.launchTimeS ?? 0);
+      }
+      return 0;
+    });
     const scenario = buildScenario(orderedPlacements);
+    const firstTrackableEntity =
+      scenario.entities.find((entity) => entity.trajectory_type !== 'stationary')?.id
+      ?? null;
 
     setActiveScenario(scenario);
     setDuration(scenario.metadata.duration_s);
     setPlaying(true);
-    primeFollow(scenario.entities[0]?.id ?? null);
+    if (firstTrackableEntity) {
+      primeFollow(firstTrackableEntity);
+    } else {
+      setMode('tactical');
+      setTrackedEntityId(null);
+      setHudExpanded(false);
+    }
 
     wsClient.connect(`session_${Date.now()}`);
     wsClient.send({ type: 'cmd_load_definition', definition: scenario });
@@ -58,15 +82,16 @@ export function LaunchPanel() {
     beginSimulation();
   };
 
-  const totalCount = scenarioPlacements.length;
+  const missileCount = scenarioPlacements.filter((placement) => placement.kind === 'missile').length;
+  const assetCount = scenarioPlacements.filter((placement) => placement.kind === 'asset').length;
 
   return (
     <div style={styles.panel}>
       <div style={styles.header}>
         <div>
-          <div style={styles.title}>Launch Queue</div>
+          <div style={styles.title}>Scenario Queue</div>
           <div style={styles.subtitle}>
-            {totalCount} missile{totalCount === 1 ? '' : 's'} configured
+            {scenarioPlacements.length} entities // {missileCount} launch tracks // {assetCount} defense assets
           </div>
         </div>
         <div style={styles.headerActions}>
@@ -117,29 +142,53 @@ function PlacementCard({
   showQueueActions,
   footerAction,
 }: {
-  placement: {
-    id: string;
-    missileType: ReturnType<typeof usePlacementStore.getState>['placements'][number]['missileType'];
-    origin: ReturnType<typeof usePlacementStore.getState>['placements'][number]['origin'];
-    target: ReturnType<typeof usePlacementStore.getState>['placements'][number]['target'];
-    launchTimeS: number;
-  };
+  placement: PlannedPlacement;
   index: number;
   onDelayChange: (value: number) => void;
   onRemove: () => void;
   showQueueActions: boolean;
   footerAction?: React.ReactNode;
 }) {
-  const cfg = getMissileTypeConfig(placement.missileType);
+  if (placement.kind === 'asset') {
+    const config = getDefenseAssetConfig(placement.assetId);
+
+    return (
+      <div style={styles.card}>
+        <div style={styles.cardHeader}>
+          <div>
+            <div style={{ ...styles.cardTitle, color: config.cssColor }}>
+              {config.label}
+            </div>
+            <div style={styles.cardMeta}>
+              Asset {index + 1} // {placement.entityType.toUpperCase()} // STATIC SITE
+            </div>
+          </div>
+          <button onClick={onRemove} style={styles.removeBtn}>
+            {showQueueActions ? 'Remove' : 'Discard'}
+          </button>
+        </div>
+
+        <div style={styles.stats}>
+          <Stat label="Role" value={placement.entityType === 'sensor' ? 'Radar' : 'Battery'} />
+          <Stat label="Lat" value={placement.position.lat.toFixed(2)} />
+          <Stat label="Lon" value={placement.position.lon.toFixed(2)} />
+        </div>
+
+        {footerAction && <div style={styles.cardFooter}>{footerAction}</div>}
+      </div>
+    );
+  }
+
+  const config = getMissileTypeConfig(placement.missileType);
   const distanceM = haversineDistanceM(placement.origin, placement.target);
-  const flightTimeS = estimateFlightTimeS(cfg, distanceM);
+  const flightTimeS = estimateFlightTimeS(config, distanceM);
 
   return (
     <div style={styles.card}>
       <div style={styles.cardHeader}>
         <div>
-          <div style={{ ...styles.cardTitle, color: cfg.cssColor }}>
-            {cfg.label}
+          <div style={{ ...styles.cardTitle, color: config.cssColor }}>
+            {config.label}
           </div>
           <div style={styles.cardMeta}>
             Track {index + 1} // {(distanceM / 1_000).toFixed(0)} km // {Math.ceil(flightTimeS)} s flight
@@ -166,11 +215,7 @@ function PlacementCard({
         </label>
       </div>
 
-      {footerAction && (
-        <div style={styles.cardFooter}>
-          {footerAction}
-        </div>
-      )}
+      {footerAction && <div style={styles.cardFooter}>{footerAction}</div>}
     </div>
   );
 }
@@ -261,7 +306,7 @@ const styles: Record<string, React.CSSProperties> = {
     gap: 4,
   },
   statLabel: {
-    color: '#718096',
+    color: '#64748b',
     fontSize: 10,
     textTransform: 'uppercase',
     letterSpacing: '0.08em',
@@ -277,65 +322,60 @@ const styles: Record<string, React.CSSProperties> = {
     gap: 4,
   },
   delayLabel: {
-    color: '#718096',
+    color: '#64748b',
     fontSize: 10,
     textTransform: 'uppercase',
     letterSpacing: '0.08em',
   },
   delayInput: {
+    width: '100%',
     background: 'rgba(255,255,255,0.04)',
-    border: '1px solid rgba(255,255,255,0.12)',
-    color: '#e2e8f0',
+    border: '1px solid rgba(255,255,255,0.1)',
     borderRadius: 4,
-    padding: '7px 8px',
+    color: '#e2e8f0',
+    padding: '6px 8px',
     fontSize: 12,
-    fontFamily: 'monospace',
   },
   cardFooter: {
     display: 'flex',
     justifyContent: 'flex-end',
   },
-  secondaryBtn: {
-    background: 'none',
-    border: '1px solid rgba(255,255,255,0.15)',
-    color: '#a0aec0',
-    borderRadius: 6,
-    padding: '8px 14px',
-    fontSize: 12,
-    cursor: 'pointer',
-    fontFamily: 'monospace',
-  },
   queueBtn: {
-    background: 'rgba(99,179,237,0.12)',
-    border: '1px solid rgba(99,179,237,0.4)',
-    color: '#8fd3ff',
-    borderRadius: 6,
-    padding: '8px 14px',
-    fontSize: 12,
-    cursor: 'pointer',
-    fontFamily: 'monospace',
-    letterSpacing: '0.06em',
-  },
-  launchBtn: {
-    background: 'rgba(0,229,255,0.12)',
-    border: '1px solid rgba(0,229,255,0.45)',
-    borderRadius: 6,
-    padding: '8px 18px',
+    background: '#00d2eb',
+    border: 'none',
+    color: '#081014',
+    padding: '8px 12px',
+    borderRadius: 4,
     fontSize: 12,
     fontWeight: 700,
     cursor: 'pointer',
-    fontFamily: 'monospace',
-    color: '#dff8ff',
-    letterSpacing: '0.08em',
-    textTransform: 'uppercase',
+  },
+  secondaryBtn: {
+    background: 'transparent',
+    border: '1px solid rgba(255,255,255,0.15)',
+    color: '#a0aec0',
+    borderRadius: 4,
+    padding: '8px 10px',
+    fontSize: 12,
+    cursor: 'pointer',
+  },
+  launchBtn: {
+    background: '#00d2eb',
+    border: 'none',
+    color: '#081014',
+    borderRadius: 4,
+    padding: '8px 12px',
+    fontSize: 12,
+    fontWeight: 700,
+    cursor: 'pointer',
   },
   removeBtn: {
-    background: 'none',
-    border: '1px solid rgba(255,255,255,0.12)',
+    background: 'transparent',
+    border: '1px solid rgba(255,255,255,0.15)',
+    color: '#a0aec0',
     borderRadius: 4,
-    color: '#8ca0ae',
-    padding: '4px 8px',
-    cursor: 'pointer',
+    padding: '6px 8px',
     fontSize: 11,
+    cursor: 'pointer',
   },
 };

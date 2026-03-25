@@ -27,7 +27,7 @@ export function GlobeViewer() {
 
       {/* ── Simulation layers ──────────────────────────────────────── */}
       <CinematicCameraController viewer={viewer} />
-      <EntityLayer viewer={viewer} entities={entities} />
+      <EntityLayer viewer={viewer} entities={entities} entityDefinitions={activeScenario?.entities ?? []} />
       <CinematicMissileLayer viewer={viewer} />
       <ImpactEffectsLayer viewer={viewer} />
       {activeScenario && (

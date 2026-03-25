@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import * as Cesium from 'cesium';
 import { useCameraStore } from '../../store/cameraStore';
+import { useScenarioStore } from '../../store/scenarioStore';
 import { useSimulationStore } from '../../store/simulationStore';
 import {
   CameraRigState,
@@ -20,8 +21,14 @@ export function CinematicCameraController({ viewer }: Props) {
   const isAutoFollowEnabled = useCameraStore((s) => s.isAutoFollowEnabled);
   const setTrackedEntityId = useCameraStore((s) => s.setTrackedEntityId);
   const entities = useSimulationStore((s) => s.entities);
+  const activeScenario = useScenarioStore((s) => s.activeScenario);
 
-  const activeEntities = entities.filter((entity) => entity.status === 'active');
+  const trackableIds = new Set(
+    (activeScenario?.entities ?? [])
+      .filter((entity) => entity.type !== 'sensor' && entity.trajectory_type !== 'stationary')
+      .map((entity) => entity.id),
+  );
+  const activeEntities = entities.filter((entity) => entity.status === 'active' && trackableIds.has(entity.id));
   const trackedEntity =
     entities.find((entity) => entity.id === trackedEntityId)
     ?? (isAutoFollowEnabled ? activeEntities[0] : null)

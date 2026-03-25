@@ -1,12 +1,13 @@
 import { useEffect, useRef } from 'react';
 import * as Cesium from 'cesium';
-import { EntityState, EntityStatus } from '../../types/entity';
+import { EntityDefinition, EntityState, EntityStatus } from '../../types/entity';
 import { geoToCartesian, entityColor, getMissileIcon } from '../../utils/cesiumHelpers';
 import { useCameraStore } from '../../store/cameraStore';
 
 interface Props {
   viewer: Cesium.Viewer | null;
   entities: EntityState[];
+  entityDefinitions: EntityDefinition[];
 }
 
 const TRAIL_MAX_POINTS = 80;
@@ -33,11 +34,13 @@ function setPositionValue(
   return new Cesium.ConstantPositionProperty(value);
 }
 
-export function EntityLayer({ viewer, entities }: Props) {
+export function EntityLayer({ viewer, entities, entityDefinitions }: Props) {
   const mode = useCameraStore((s) => s.mode);
   const trackedEntityId = useCameraStore((s) => s.trackedEntityId);
   const setMode = useCameraStore((s) => s.setMode);
   const setTrackedEntityId = useCameraStore((s) => s.setTrackedEntityId);
+  const followPreset = useCameraStore((s) => s.followPreset);
+  const setFollowPreset = useCameraStore((s) => s.setFollowPreset);
   const setHudExpanded = useCameraStore((s) => s.setHudExpanded);
   const entityMapRef  = useRef<Map<string, Cesium.Entity>>(new Map());
   const trailMapRef   = useRef<Map<string, Cesium.Entity>>(new Map());
@@ -60,9 +63,11 @@ export function EntityLayer({ viewer, entities }: Props) {
         state.status === 'intercepted' ||
         state.status === 'destroyed'   ||
         state.status === 'missed';
+      const definition = entityDefinitions.find((candidate) => candidate.id === state.id) ?? null;
+      const isStationary = definition?.trajectory_type === 'stationary';
       const isSensor   = state.type === 'sensor';
       const prevStatus = prevStatusRef.current.get(state.id);
-      const hideBaseVisual = mode === 'follow' && trackedEntityId === state.id;
+      const hideBaseVisual = mode === 'follow' && followPreset === 'chase' && trackedEntityId === state.id;
 
       const existing = entityMapRef.current.get(state.id);
 
@@ -114,12 +119,12 @@ export function EntityLayer({ viewer, entities }: Props) {
           },
         };
 
-        if (isSensor) {
+        if (isSensor || isStationary) {
           entityOpts.point = {
-            pixelSize:    8,
+            pixelSize:    isSensor ? 8 : 11,
             color,
             outlineColor: Cesium.Color.WHITE.withAlpha(0.3),
-            outlineWidth: 1,
+            outlineWidth: isSensor ? 1 : 2,
             disableDepthTestDistance: Number.POSITIVE_INFINITY,
           };
         } else {
@@ -205,7 +210,7 @@ export function EntityLayer({ viewer, entities }: Props) {
         prevStatusRef.current.delete(id);
       }
     }
-  }, [viewer, entities, mode, trackedEntityId]);
+  }, [viewer, entities, entityDefinitions, mode, trackedEntityId, followPreset]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -224,8 +229,8 @@ export function EntityLayer({ viewer, entities }: Props) {
     if (!viewer || entities.length === 0) return;
 
     const entityIds = new Set(
-      entities
-        .filter((entity) => entity.type !== 'sensor')
+      entityDefinitions
+        .filter((entity) => entity.type !== 'sensor' && entity.trajectory_type !== 'stationary')
         .map((entity) => entity.id),
     );
 
@@ -236,6 +241,7 @@ export function EntityLayer({ viewer, entities }: Props) {
       const normalizedId = rawId.startsWith('trail_') ? rawId.slice(6) : rawId;
       if (!entityIds.has(normalizedId)) return;
 
+      setFollowPreset('wide');
       setMode('follow');
       setTrackedEntityId(normalizedId);
       setHudExpanded(true);
@@ -246,7 +252,7 @@ export function EntityLayer({ viewer, entities }: Props) {
     return () => {
       viewer.selectedEntityChanged.removeEventListener(handleSelectedEntityChanged);
     };
-  }, [entities, setHudExpanded, setMode, setTrackedEntityId, viewer]);
+  }, [entityDefinitions, setFollowPreset, setHudExpanded, setMode, setTrackedEntityId, viewer]);
 
   return null;
 }

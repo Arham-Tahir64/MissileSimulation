@@ -32,8 +32,13 @@ export function TacticalShell() {
   const { toggle, seek, changeSpeed } = usePlayback();
   const placementReset = usePlacementStore((s) => s.reset);
 
-  const activeEntities = entities.filter((entity) => entity.status === 'active');
-  const fleetEntries = (activeScenario?.entities ?? []).map((definition) => ({
+  const trackableDefinitions = (activeScenario?.entities ?? []).filter(
+    (definition) => definition.type !== 'sensor' && definition.trajectory_type !== 'stationary',
+  );
+  const activeEntities = entities.filter((entity) =>
+    entity.status === 'active' && trackableDefinitions.some((definition) => definition.id === entity.id),
+  );
+  const fleetEntries = trackableDefinitions.map((definition) => ({
     definition,
     state: entities.find((entity) => entity.id === definition.id) ?? null,
   }));
@@ -97,6 +102,7 @@ export function TacticalShell() {
   };
 
   const selectTrackedMissile = (missileId: string) => {
+    setFollowPreset('wide');
     setMode('follow');
     setTrackedEntityId(missileId);
     setHudExpanded(true);
@@ -144,7 +150,7 @@ export function TacticalShell() {
         <div style={styles.railHeader}>
           <div style={styles.railTitle}>TACTICAL_CMD</div>
           <div style={styles.railSubtitle}>
-            {activeScenario?.metadata.name ?? 'CUSTOM_TRACK'} // {trackedEntity?.type ?? 'standby'}
+            {activeScenario?.metadata.name ?? 'CUSTOM_TRACK'} // {trackedDefinition?.label ?? trackedEntity?.type ?? 'standby'}
           </div>
         </div>
 
@@ -234,7 +240,7 @@ export function TacticalShell() {
                       <span style={styles.fleetStatus}>{liveStatus}</span>
                     </div>
                     <div style={styles.fleetMeta}>
-                      {definition.type} // T+{Math.round(definition.launch_time_s)}s
+                      {definition.label} // T+{Math.round(definition.launch_time_s)}s
                     </div>
                   </button>
                 );

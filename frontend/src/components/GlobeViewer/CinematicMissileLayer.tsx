@@ -95,12 +95,14 @@ function setConstantValue<T>(
 export function CinematicMissileLayer({ viewer }: Props) {
   const mode = useCameraStore((s) => s.mode);
   const trackedEntityId = useCameraStore((s) => s.trackedEntityId);
+  const followPreset = useCameraStore((s) => s.followPreset);
   const entities = useSimulationStore((s) => s.entities);
 
   const trackedEntity = entities.find((entity) => entity.id === trackedEntityId) ?? null;
 
   const trackedEntityRef = useRef(trackedEntity);
   const modeRef = useRef(mode);
+  const presetRef = useRef(followPreset);
   const smoothedPositionRef = useRef<Cesium.Cartesian3 | null>(null);
   const missileRef = useRef<Cesium.Entity | null>(null);
   const plumeRef = useRef<Cesium.Entity | null>(null);
@@ -112,6 +114,10 @@ export function CinematicMissileLayer({ viewer }: Props) {
   useEffect(() => {
     modeRef.current = mode;
   }, [mode]);
+
+  useEffect(() => {
+    presetRef.current = followPreset;
+  }, [followPreset]);
 
   useEffect(() => {
     if (!viewer) return;
@@ -165,6 +171,7 @@ export function CinematicMissileLayer({ viewer }: Props) {
 
       const tracked = trackedEntityRef.current;
       const isVisible = modeRef.current === 'follow'
+        && presetRef.current === 'chase'
         && tracked
         && tracked.status === 'active';
 

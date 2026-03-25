@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import * as Cesium from 'cesium';
 import { usePlacementStore } from '../../store/placementStore';
 import { getMissileTypeConfig } from '../../config/missileTypes';
+import { getDefenseAssetConfig } from '../../config/defenseAssets';
 import {
   geoToCartesian,
   entityColor,
@@ -29,8 +30,9 @@ export function PlacementMarkerLayer({ viewer }: Props) {
   const originRef = useRef<Cesium.Entity | null>(null);
   const targetRef = useRef<Cesium.Entity | null>(null);
   const arcRef    = useRef<Cesium.Entity | null>(null);
+  const assetMapRef = useRef<Map<string, Cesium.Entity>>(new Map());
 
-  const { origin, target, missileType, phase } = usePlacementStore();
+  const { origin, target, missileType, phase, placements } = usePlacementStore();
 
   const isVisible = phase !== 'idle' && phase !== 'simulating';
 
@@ -145,6 +147,73 @@ export function PlacementMarkerLayer({ viewer }: Props) {
       }
     };
   }, [viewer, origin, target, missileType, isVisible]);
+
+  // ── Queued defense asset markers ────────────────────────────────────────
+  useEffect(() => {
+    if (!viewer) return;
+
+    const assetPlacements = placements.filter((placement) => placement.kind === 'asset');
+    const seenIds = new Set<string>();
+
+    for (const placement of assetPlacements) {
+      seenIds.add(placement.id);
+      const existing = assetMapRef.current.get(placement.id);
+      const cfg = getDefenseAssetConfig(placement.assetId);
+      const color = Cesium.Color.fromCssColorString(cfg.cssColor);
+      const position = geoToCartesian(placement.position);
+
+      if (existing) {
+        existing.position = new Cesium.ConstantPositionProperty(position);
+        continue;
+      }
+
+      const marker = viewer.entities.add({
+        id: `placement_asset_${placement.id}`,
+        position,
+        point: {
+          pixelSize: cfg.entityType === 'sensor' ? 12 : 14,
+          color,
+          outlineColor: Cesium.Color.WHITE.withAlpha(0.48),
+          outlineWidth: cfg.entityType === 'sensor' ? 2 : 3,
+          disableDepthTestDistance: Number.POSITIVE_INFINITY,
+        },
+        label: {
+          text: cfg.shortLabel,
+          font: 'bold 11px monospace',
+          fillColor: color,
+          outlineColor: Cesium.Color.BLACK,
+          outlineWidth: 3,
+          style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+          pixelOffset: new Cesium.Cartesian2(0, -24),
+          disableDepthTestDistance: Number.POSITIVE_INFINITY,
+        },
+      });
+
+      assetMapRef.current.set(placement.id, marker);
+    }
+
+    for (const [id, entity] of assetMapRef.current) {
+      if (!seenIds.has(id)) {
+        viewer.entities.remove(entity);
+        assetMapRef.current.delete(id);
+      }
+    }
+
+    return () => {
+      if (!viewer.isDestroyed() && (phase === 'simulating' || phase === 'idle')) {
+        for (const entity of assetMapRef.current.values()) viewer.entities.remove(entity);
+        assetMapRef.current.clear();
+      }
+    };
+  }, [viewer, placements, phase]);
+
+  useEffect(() => {
+    return () => {
+      if (!viewer) return;
+      for (const entity of assetMapRef.current.values()) viewer.entities.remove(entity);
+      assetMapRef.current.clear();
+    };
+  }, [viewer]);
 
   return null;
 }
