@@ -1,9 +1,22 @@
+import { useEffect, useMemo, useState } from 'react';
 import { ReplayEventMarker, HudSnapshot, AlertRow } from '../HUD/hudSelectors';
 import { SelectionDetailPanel } from '../HUD/SelectionDetailPanel';
-import { AlertFeedPanel } from '../HUD/AlertFeedPanel';
 import { ReplayTimelineBar } from '../HUD/ReplayTimelineBar';
 import { glassPanel, hudTheme } from '../HUD/hudTheme';
 import { usePlayback } from '../Playback/usePlayback';
+import { usePlaybackStore } from '../../store/playbackStore';
+import { ReplayBookmarkPanel } from './replay/ReplayBookmarkPanel';
+import { ReplayEventInspector } from './replay/ReplayEventInspector';
+import { ReplayMomentPanel } from './replay/ReplayMomentPanel';
+import {
+  buildBookmarkId,
+  countReplayEvents,
+  filterAlerts,
+  filterMarkers,
+  getActiveMomentAlert,
+  getNearestAlerts,
+  ReplayEventFilter,
+} from './replay/replayUtils';
 
 export function ReplayPage({
   snapshot,
@@ -33,6 +46,45 @@ export function ReplayPage({
   onGoToMonitor: () => void;
 }) {
   const { toggle, seek, changeSpeed } = usePlayback();
+  const { bookmarks, addBookmark, removeBookmark, clearBookmarks } = usePlaybackStore();
+  const [activeFilter, setActiveFilter] = useState<ReplayEventFilter>('all');
+
+  useEffect(() => {
+    if (durationS <= 0 && bookmarks.length > 0) {
+      clearBookmarks();
+    }
+  }, [bookmarks.length, clearBookmarks, durationS]);
+
+  const visibleAlerts = useMemo(
+    () => filterAlerts(snapshot.alerts, activeFilter),
+    [activeFilter, snapshot.alerts],
+  );
+  const visibleMarkers = useMemo(
+    () => filterMarkers(markers, activeFilter),
+    [activeFilter, markers],
+  );
+  const nearestAlerts = useMemo(
+    () => getNearestAlerts(visibleAlerts, simTimeS, 5),
+    [simTimeS, visibleAlerts],
+  );
+  const activeMoment = useMemo(
+    () => getActiveMomentAlert(visibleAlerts, simTimeS),
+    [simTimeS, visibleAlerts],
+  );
+  const counts = useMemo(
+    () => countReplayEvents(snapshot.alerts),
+    [snapshot.alerts],
+  );
+
+  const handleAddBookmark = () => {
+    const sourceEvent = activeMoment ?? nearestAlerts[0] ?? null;
+    addBookmark({
+      id: buildBookmarkId(simTimeS, sourceEvent?.event.event_id),
+      simTimeS,
+      eventId: sourceEvent?.event.event_id ?? null,
+      label: sourceEvent ? sourceEvent.title : snapshot.selection.kind === 'none' ? 'Replay Bookmark' : snapshot.selection.title,
+    });
+  };
 
   return (
     <div style={styles.wrap}>
@@ -47,14 +99,40 @@ export function ReplayPage({
       </div>
 
       <aside style={styles.leftRail}>
-        <AlertFeedPanel alerts={snapshot.alerts} onSelectAlert={onSelectAlert} />
+        <div style={styles.railStack}>
+          <ReplayMomentPanel
+            simTimeS={simTimeS}
+            activeEvent={activeMoment}
+            nearestEvents={nearestAlerts}
+            selection={snapshot.selection}
+            metrics={snapshot.metrics}
+            counts={counts}
+          />
+          <ReplayEventInspector
+            alerts={visibleAlerts}
+            activeFilter={activeFilter}
+            currentTimeS={simTimeS}
+            onChangeFilter={setActiveFilter}
+            onSelectAlert={onSelectAlert}
+          />
+        </div>
       </aside>
 
-      {snapshot.selection.kind !== 'none' && (
-        <aside style={styles.rightRail}>
+      <aside style={styles.rightRail}>
+        <div style={styles.railStack}>
+          {snapshot.selection.kind !== 'none' && (
           <SelectionDetailPanel selection={snapshot.selection} />
-        </aside>
-      )}
+          )}
+          <ReplayBookmarkPanel
+            bookmarks={bookmarks}
+            activeTimeS={simTimeS}
+            onAddBookmark={handleAddBookmark}
+            onSelectBookmark={(bookmark) => seek(bookmark.simTimeS)}
+            onRemoveBookmark={removeBookmark}
+            onClearBookmarks={clearBookmarks}
+          />
+        </div>
+      </aside>
 
       <div style={styles.bottomDock}>
         <ReplayTimelineBar
@@ -63,16 +141,19 @@ export function ReplayPage({
           speed={speed}
           durationS={durationS}
           fraction={fraction}
-          markers={markers}
+          markers={visibleMarkers}
+          bookmarks={bookmarks}
           showAlerts={showAlerts}
+          activeFilterLabel={activeFilter}
           onTogglePlay={toggle}
           onSeekFraction={(nextFraction) => seek(nextFraction * durationS)}
           onSpeedChange={changeSpeed}
           onSelectMarker={onSelectMarker}
+          onSelectBookmark={(bookmark) => seek(bookmark.simTimeS)}
         />
         <div style={styles.contextStrip}>
           <span>{snapshot.selection.kind === 'none' ? 'NO_SELECTION' : snapshot.selection.title}</span>
-          <span>{snapshot.selection.latestEventLabel ?? 'SELECT_A_TRACK_OR_ASSET'}</span>
+          <span>{activeMoment?.subtitle ?? snapshot.selection.latestEventLabel ?? 'SELECT_A_TRACK_OR_ASSET'}</span>
           <span>T+ {simTimeS.toFixed(1)}s</span>
         </div>
       </div>
@@ -123,7 +204,7 @@ const styles: Record<string, React.CSSProperties> = {
     top: 82,
     left: 0,
     bottom: 146,
-    width: 340,
+    width: 380,
     pointerEvents: 'auto',
   },
   rightRail: {
@@ -131,8 +212,15 @@ const styles: Record<string, React.CSSProperties> = {
     top: 82,
     right: 0,
     bottom: 146,
-    width: 360,
+    width: 380,
     pointerEvents: 'auto',
+  },
+  railStack: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 12,
+    height: '100%',
+    minHeight: 0,
   },
   bottomDock: {
     position: 'absolute',

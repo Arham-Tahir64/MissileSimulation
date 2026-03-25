@@ -1,65 +1,111 @@
 import { HudSnapshot } from '../HUD/hudSelectors';
-import { glassPanel, hudTheme, monoText } from '../HUD/hudTheme';
+import { buttonReset, glassPanel, hudTheme, monoText, sectionTitle } from '../HUD/hudTheme';
+import { buildAnalysisModel } from './analysis/analysisModel';
+import { useDashboardStore } from '../../store/dashboardStore';
+import { usePlayback } from '../Playback/usePlayback';
 
 export function AnalysisPage({ snapshot }: { snapshot: HudSnapshot }) {
+  const model = buildAnalysisModel(snapshot);
+  const setCurrentPage = useDashboardStore((state) => state.setCurrentPage);
+  const { seek } = usePlayback();
+
+  const openReplayAt = (simTimeS: number) => {
+    setCurrentPage('replay');
+    seek(simTimeS);
+  };
+
   return (
     <div style={styles.wrap}>
-      <div style={styles.header}>
-        <div style={styles.title}>Analysis</div>
-        <div style={styles.copy}>
-          Analysis is calmer and report-like. Live motion fades into the background so outcome patterns and system activity are easier to read.
+      <header style={styles.header}>
+        <div>
+          <div style={styles.eyebrow}>Scenario Report</div>
+          <h1 style={styles.title}>{model.headline}</h1>
         </div>
-      </div>
 
-      <div style={styles.grid}>
-        <section style={styles.card}>
-          <div style={styles.cardTitle}>Outcome Summary</div>
-          <div style={styles.kpiGrid}>
-            <Kpi label="Completed Tracks" value={String(snapshot.metrics.completedTracks)} tone={hudTheme.cyanSoft} />
-            <Kpi label="Intercept Success" value={String(snapshot.metrics.interceptSuccesses)} tone={hudTheme.cyanSoft} />
-            <Kpi label="Intercept Miss" value={String(snapshot.metrics.interceptMisses)} tone={hudTheme.redSoft} />
-            <Kpi label="Live Alerts Logged" value={String(snapshot.metrics.activeAlerts)} tone={hudTheme.amberSoft} />
+        <div style={styles.headerMeta}>
+          <div style={styles.metaBlock}>
+            <div style={styles.metaLabel}>Scenario</div>
+            <div style={styles.metaValue}>{snapshot.scenarioLabel}</div>
           </div>
-        </section>
+          <div style={styles.metaBlock}>
+            <div style={styles.metaLabel}>Session</div>
+            <div style={styles.metaValue}>{snapshot.sessionLabel}</div>
+          </div>
+        </div>
+      </header>
 
-        <section style={styles.card}>
-          <div style={styles.cardTitle}>Track Outcomes</div>
-          <div style={styles.table}>
-            {snapshot.tracks.map((track) => (
-              <div key={track.id} style={styles.tableRow}>
-                <span style={styles.name}>{track.name}</span>
-                <span style={styles.meta}>{track.label}</span>
-                <span style={styles.meta}>{track.status.toUpperCase()}</span>
+      <section style={styles.heroGrid}>
+        <div style={styles.heroPanel}>
+          <p style={styles.copy}>{model.narrative}</p>
+          <div style={styles.summaryStrip}>
+            {model.summaryLines.map((line) => (
+              <div key={line} style={styles.summaryLine}>
+                {line}
               </div>
             ))}
           </div>
-        </section>
+        </div>
 
-        <section style={styles.card}>
-          <div style={styles.cardTitle}>Asset Activity</div>
-          <div style={styles.table}>
-            {snapshot.defenseAssets.map((asset) => (
-              <div key={asset.id} style={styles.tableRow}>
-                <span style={styles.name}>{asset.name}</span>
-                <span style={styles.meta}>{asset.role.toUpperCase()}</span>
-                <span style={styles.meta}>{asset.readiness}</span>
-              </div>
-            ))}
+        <div style={styles.kpiGrid}>
+          {model.outcomeMetrics.map((metric) => (
+            <MetricCard
+              key={metric.label}
+              label={metric.label}
+              value={metric.value}
+              detail={metric.detail}
+              tone={metric.tone}
+            />
+          ))}
+        </div>
+      </section>
+
+      <section style={styles.mainGrid}>
+        <section style={styles.sectionTall}>
+          <SectionHeader
+            title="Outcome Ledger"
+            subtitle="Track states are presented as a report-first ledger rather than a live operations list."
+          />
+          <div style={styles.ledger}>
+            {model.trackOutcomes.length > 0 ? (
+              model.trackOutcomes.map((track) => (
+                <div key={track.id} style={styles.ledgerRow}>
+                  <div>
+                    <div style={styles.rowTitle}>{track.name}</div>
+                    <div style={styles.rowSubtle}>{track.label}</div>
+                  </div>
+                  <div style={styles.rowRight}>
+                    <TonePill tone={track.statusTone} text={track.statusLabel} />
+                    <div style={styles.rowDetail}>{track.latestEventLabel}</div>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <EmptyState
+                title="No track outcomes yet"
+                copy="Run a scenario to populate final states, event summaries, and asset activity."
+              />
+            )}
           </div>
         </section>
 
-        <section style={styles.card}>
-          <div style={styles.cardTitle}>Event Distribution</div>
-          <div style={styles.chart}>
-            {snapshot.alerts.slice(0, 10).reverse().map((alert, index) => (
-              <div key={alert.id} style={styles.barRow}>
-                <span style={styles.barLabel}>{alert.title}</span>
+        <section style={styles.sectionCard}>
+          <SectionHeader
+            title="Event Distribution"
+            subtitle="Sensor, tasking, and resolution events are grouped so the overall scenario cadence is easier to read."
+          />
+          <div style={styles.distributionList}>
+            {model.eventBreakdown.map((row) => (
+              <div key={row.label} style={styles.distributionRow}>
+                <div style={styles.distributionHeader}>
+                  <span style={styles.rowTitle}>{row.label}</span>
+                  <span style={styles.rowSubtle}>{row.count}</span>
+                </div>
                 <div style={styles.barTrack}>
                   <div
                     style={{
                       ...styles.barFill,
-                      width: `${Math.max(18, 24 + index * 7)}%`,
-                      background: alert.tone === 'cyan' ? hudTheme.cyan : alert.tone === 'amber' ? hudTheme.amber : hudTheme.red,
+                      width: `${Math.max(10, Math.round(row.fraction * 100))}%`,
+                      background: toneColor(row.tone),
                     }}
                   />
                 </div>
@@ -67,18 +113,134 @@ export function AnalysisPage({ snapshot }: { snapshot: HudSnapshot }) {
             ))}
           </div>
         </section>
-      </div>
+
+        <section style={styles.sectionCard}>
+          <SectionHeader
+            title="Asset Activity"
+            subtitle="A compact summary of which fictional sensors and batteries were actively participating."
+          />
+          <div style={styles.assetList}>
+            {model.assetActivity.length > 0 ? (
+              model.assetActivity.map((asset) => (
+                <div key={asset.id} style={styles.assetRow}>
+                  <div>
+                    <div style={styles.rowTitle}>{asset.name}</div>
+                    <div style={styles.rowSubtle}>{asset.roleLabel}</div>
+                  </div>
+                  <div style={styles.rowRight}>
+                    <TonePill
+                      tone={asset.emphasis === 'engaging' ? 'cyan' : asset.emphasis === 'tracking' ? 'amber' : 'red'}
+                      text={asset.statusLabel}
+                    />
+                    <div style={styles.rowDetail}>{asset.activityLabel}</div>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <EmptyState
+                title="No asset activity"
+                copy="This run did not surface sensor or battery activity in the current report snapshot."
+              />
+            )}
+          </div>
+        </section>
+
+        <section style={styles.sectionTall}>
+          <SectionHeader
+            title="Investigation Queue"
+            subtitle="Recent high-signal events stay one click away so you can jump directly into Replay at the relevant moment."
+          />
+          <div style={styles.cueList}>
+            {model.investigationCues.length > 0 ? (
+              model.investigationCues.map((cue) => (
+                <button
+                  key={cue.id}
+                  type="button"
+                  style={styles.cueButton}
+                  onClick={() => openReplayAt(cue.simTimeS)}
+                >
+                  <div style={styles.cueTime}>{cue.timeLabel}</div>
+                  <div style={styles.cueBody}>
+                    <div style={styles.rowTitle}>{cue.title}</div>
+                    <div style={styles.rowSubtle}>{cue.subtitle}</div>
+                  </div>
+                  <TonePill tone={cue.tone} text="OPEN IN REPLAY" />
+                </button>
+              ))
+            ) : (
+              <EmptyState
+                title="No replay hooks yet"
+                copy="Once runtime events are logged, this queue becomes a direct handoff from report view into Replay."
+              />
+            )}
+          </div>
+        </section>
+      </section>
     </div>
   );
 }
 
-function Kpi({ label, value, tone }: { label: string; value: string; tone: string }) {
+function SectionHeader({ title, subtitle }: { title: string; subtitle: string }) {
   return (
-    <div style={styles.kpi}>
-      <div style={styles.kpiLabel}>{label}</div>
-      <div style={{ ...styles.kpiValue, color: tone }}>{value}</div>
+    <div style={styles.sectionHeader}>
+      <div style={sectionTitle}>{title}</div>
+      <div style={styles.sectionCopy}>{subtitle}</div>
     </div>
   );
+}
+
+function MetricCard({
+  label,
+  value,
+  detail,
+  tone,
+}: {
+  label: string;
+  value: string;
+  detail: string;
+  tone: 'cyan' | 'amber' | 'red';
+}) {
+  return (
+    <div style={styles.metricCard}>
+      <div style={styles.metricLabel}>{label}</div>
+      <div style={{ ...styles.metricValue, color: toneColor(tone) }}>{value}</div>
+      <div style={styles.metricDetail}>{detail}</div>
+    </div>
+  );
+}
+
+function TonePill({ tone, text }: { tone: 'cyan' | 'amber' | 'red'; text: string }) {
+  return (
+    <span
+      style={{
+        ...styles.tonePill,
+        color: toneColor(tone),
+        borderColor: `${toneColor(tone)}3a`,
+        background: `${toneColor(tone)}12`,
+      }}
+    >
+      {text}
+    </span>
+  );
+}
+
+function EmptyState({ title, copy }: { title: string; copy: string }) {
+  return (
+    <div style={styles.emptyState}>
+      <div style={styles.rowTitle}>{title}</div>
+      <div style={styles.sectionCopy}>{copy}</div>
+    </div>
+  );
+}
+
+function toneColor(tone: 'cyan' | 'amber' | 'red') {
+  if (tone === 'amber') {
+    return hudTheme.amber;
+  }
+  if (tone === 'red') {
+    return hudTheme.red;
+  }
+  return hudTheme.cyan;
 }
 
 const styles: Record<string, React.CSSProperties> = {
@@ -86,116 +248,270 @@ const styles: Record<string, React.CSSProperties> = {
     position: 'absolute',
     inset: '96px 20px 24px 20px',
     display: 'grid',
-    gridTemplateRows: 'auto minmax(0, 1fr)',
+    gridTemplateRows: 'auto auto minmax(0, 1fr)',
     gap: 18,
     pointerEvents: 'auto',
+    overflow: 'hidden',
   },
   header: {
-    maxWidth: 720,
-    pointerEvents: 'auto',
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'end',
+    gap: 24,
+  },
+  eyebrow: {
+    ...monoText,
+    color: hudTheme.cyan,
+    fontSize: 12,
+    letterSpacing: '0.22em',
+    textTransform: 'uppercase',
+    fontWeight: 700,
   },
   title: {
+    margin: '10px 0 0 0',
     color: hudTheme.text,
     fontFamily: "'Space Grotesk', 'Inter', sans-serif",
     fontSize: 34,
+    lineHeight: 1.05,
+    maxWidth: 780,
   },
-  copy: {
-    color: hudTheme.muted,
-    fontSize: 15,
-    marginTop: 8,
-    lineHeight: 1.7,
-  },
-  grid: {
+  headerMeta: {
     display: 'grid',
-    gridTemplateColumns: '1.05fr 0.95fr',
+    gridTemplateColumns: 'repeat(2, minmax(160px, 1fr))',
+    gap: 12,
+    minWidth: 320,
+  },
+  metaBlock: {
+    ...glassPanel,
+    padding: '12px 14px',
+  },
+  metaLabel: {
+    ...monoText,
+    color: hudTheme.muted,
+    fontSize: 10,
+    letterSpacing: '0.16em',
+    textTransform: 'uppercase',
+  },
+  metaValue: {
+    color: hudTheme.text,
+    fontSize: 16,
+    marginTop: 8,
+  },
+  heroGrid: {
+    display: 'grid',
+    gridTemplateColumns: '1.2fr 1fr',
     gap: 16,
     minHeight: 0,
   },
-  card: {
+  heroPanel: {
     ...glassPanel,
-    padding: 18,
-    pointerEvents: 'auto',
-    minHeight: 0,
+    padding: 20,
+    display: 'grid',
+    alignContent: 'space-between',
+    gap: 16,
   },
-  cardTitle: {
+  copy: {
+    color: hudTheme.text,
+    lineHeight: 1.7,
+    fontSize: 15,
+    margin: 0,
+    maxWidth: 760,
+  },
+  summaryStrip: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+    gap: 10,
+  },
+  summaryLine: {
     ...monoText,
-    color: hudTheme.muted,
-    textTransform: 'uppercase',
-    letterSpacing: '0.16em',
-    fontSize: 10,
+    padding: '12px 14px',
+    background: 'rgba(255,255,255,0.03)',
+    color: hudTheme.amberSoft,
+    fontSize: 11,
+    letterSpacing: '0.12em',
+    lineHeight: 1.6,
   },
   kpiGrid: {
     display: 'grid',
     gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
     gap: 12,
-    marginTop: 14,
   },
-  kpi: {
-    background: 'rgba(255,255,255,0.03)',
-    padding: 12,
+  metricCard: {
+    ...glassPanel,
+    padding: 16,
+    display: 'grid',
+    gap: 10,
   },
-  kpiLabel: {
+  metricLabel: {
     ...monoText,
     color: hudTheme.muted,
-    textTransform: 'uppercase',
-    letterSpacing: '0.14em',
     fontSize: 10,
+    letterSpacing: '0.14em',
+    textTransform: 'uppercase',
   },
-  kpiValue: {
+  metricValue: {
     ...monoText,
-    fontSize: 30,
-    marginTop: 12,
+    fontSize: 34,
+    lineHeight: 1,
   },
-  table: {
+  metricDetail: {
+    ...monoText,
+    color: hudTheme.faint,
+    fontSize: 11,
+    letterSpacing: '0.08em',
+  },
+  mainGrid: {
+    display: 'grid',
+    gridTemplateColumns: '1.08fr 0.92fr',
+    gap: 16,
+    minHeight: 0,
+  },
+  sectionTall: {
+    ...glassPanel,
+    padding: 18,
+    minHeight: 0,
+    display: 'grid',
+    gridTemplateRows: 'auto minmax(0, 1fr)',
+    gap: 14,
+  },
+  sectionCard: {
+    ...glassPanel,
+    padding: 18,
+    minHeight: 0,
+    display: 'grid',
+    gridTemplateRows: 'auto minmax(0, 1fr)',
+    gap: 14,
+  },
+  sectionHeader: {
+    display: 'grid',
+    gap: 6,
+  },
+  sectionCopy: {
+    color: hudTheme.muted,
+    fontSize: 13,
+    lineHeight: 1.7,
+  },
+  ledger: {
     display: 'flex',
     flexDirection: 'column',
     gap: 10,
-    marginTop: 14,
-    maxHeight: '100%',
     overflowY: 'auto',
+    minHeight: 0,
+    paddingRight: 4,
   },
-  tableRow: {
+  ledgerRow: {
     display: 'grid',
-    gridTemplateColumns: 'minmax(0, 1.2fr) auto auto',
-    gap: 10,
-    padding: '10px 12px',
+    gridTemplateColumns: 'minmax(0, 1fr) auto',
+    gap: 12,
+    padding: '14px 16px',
     background: 'rgba(255,255,255,0.03)',
     alignItems: 'center',
   },
-  name: {
+  rowTitle: {
     color: hudTheme.text,
     fontSize: 14,
+    lineHeight: 1.35,
   },
-  meta: {
+  rowSubtle: {
     ...monoText,
     color: hudTheme.muted,
     fontSize: 11,
     letterSpacing: '0.08em',
+    marginTop: 6,
+    textTransform: 'uppercase',
   },
-  chart: {
+  rowRight: {
+    display: 'grid',
+    justifyItems: 'end',
+    gap: 8,
+    maxWidth: 320,
+  },
+  rowDetail: {
+    ...monoText,
+    color: hudTheme.faint,
+    fontSize: 11,
+    letterSpacing: '0.08em',
+    textAlign: 'right',
+  },
+  tonePill: {
+    ...monoText,
+    padding: '6px 10px',
+    fontSize: 10,
+    letterSpacing: '0.14em',
+    textTransform: 'uppercase',
+    border: '1px solid',
+    whiteSpace: 'nowrap',
+  },
+  distributionList: {
     display: 'flex',
     flexDirection: 'column',
-    gap: 10,
-    marginTop: 16,
+    gap: 16,
   },
-  barRow: {
+  distributionRow: {
     display: 'grid',
-    gridTemplateColumns: '120px minmax(0, 1fr)',
-    gap: 12,
-    alignItems: 'center',
+    gap: 10,
   },
-  barLabel: {
-    ...monoText,
-    color: hudTheme.muted,
-    fontSize: 11,
-    textTransform: 'uppercase',
-    letterSpacing: '0.1em',
+  distributionHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 12,
   },
   barTrack: {
+    height: 14,
     background: 'rgba(255,255,255,0.04)',
-    height: 12,
+    overflow: 'hidden',
   },
   barFill: {
     height: '100%',
+  },
+  assetList: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 10,
+    overflowY: 'auto',
+    minHeight: 0,
+    paddingRight: 4,
+  },
+  assetRow: {
+    display: 'grid',
+    gridTemplateColumns: 'minmax(0, 1fr) auto',
+    gap: 12,
+    padding: '14px 16px',
+    background: 'rgba(255,255,255,0.03)',
+    alignItems: 'center',
+  },
+  cueList: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 10,
+    overflowY: 'auto',
+    minHeight: 0,
+    paddingRight: 4,
+  },
+  cueButton: {
+    ...buttonReset,
+    display: 'grid',
+    gridTemplateColumns: '72px minmax(0, 1fr) auto',
+    gap: 14,
+    alignItems: 'center',
+    padding: '14px 16px',
+    background: 'rgba(255,255,255,0.03)',
+    textAlign: 'left',
+    cursor: 'pointer',
+  },
+  cueTime: {
+    ...monoText,
+    color: hudTheme.cyanSoft,
+    fontSize: 16,
+    letterSpacing: '0.08em',
+  },
+  cueBody: {
+    minWidth: 0,
+  },
+  emptyState: {
+    display: 'grid',
+    gap: 8,
+    padding: '18px 0',
   },
 };

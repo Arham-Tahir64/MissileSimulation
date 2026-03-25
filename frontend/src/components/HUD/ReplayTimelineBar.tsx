@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { formatSimTime } from '../../utils/timeUtils';
 import { ReplayEventMarker } from './hudSelectors';
 import { glassPanel, hudTheme, monoText, sectionTitle } from './hudTheme';
+import { ReplayBookmark } from '../../store/playbackStore';
 
 const SPEED_OPTIONS = [0.5, 1, 2, 4, 8];
 
@@ -12,11 +13,14 @@ export function ReplayTimelineBar({
   durationS,
   fraction,
   markers,
+  bookmarks,
   showAlerts,
+  activeFilterLabel,
   onTogglePlay,
   onSeekFraction,
   onSpeedChange,
   onSelectMarker,
+  onSelectBookmark,
 }: {
   isPlaying: boolean;
   status: string;
@@ -24,14 +28,17 @@ export function ReplayTimelineBar({
   durationS: number;
   fraction: number;
   markers: ReplayEventMarker[];
+  bookmarks: ReplayBookmark[];
   showAlerts: boolean;
+  activeFilterLabel: string;
   onTogglePlay: () => void;
   onSeekFraction: (fraction: number) => void;
   onSpeedChange: (speed: number) => void;
   onSelectMarker: (marker: ReplayEventMarker) => void;
+  onSelectBookmark: (bookmark: ReplayBookmark) => void;
 }) {
   const [isScrubbing, setScrubbing] = useState(false);
-  const [draftFraction, setDraftFraction] = useState(fraction);
+  const [draftFraction, setDraftFraction] = useState(0);
 
   useEffect(() => {
     if (!isScrubbing) {
@@ -53,6 +60,9 @@ export function ReplayTimelineBar({
         <div>
           <div style={sectionTitle}>Replay Timeline</div>
           <div style={styles.headline}>Playback, scrub, and event markers</div>
+          <div style={styles.metaLine}>
+            FILTER // {activeFilterLabel} // MARKERS {markers.length} // BOOKMARKS {bookmarks.length}
+          </div>
         </div>
         <div style={styles.controls}>
           <button onClick={onTogglePlay} disabled={status === 'idle'} style={styles.playButton}>
@@ -73,6 +83,17 @@ export function ReplayTimelineBar({
       </div>
 
       <div style={styles.timelineWrap}>
+        {bookmarks.map((bookmark) => (
+          <button
+            key={bookmark.id}
+            onClick={() => onSelectBookmark(bookmark)}
+            style={{
+              ...styles.bookmark,
+              left: `${durationS <= 0 ? 0 : (bookmark.simTimeS / durationS) * 100}%`,
+            }}
+            title={bookmark.label}
+          />
+        ))}
         {showAlerts && markers.map((marker) => (
           <button
             key={marker.id}
@@ -137,6 +158,13 @@ const styles: Record<string, React.CSSProperties> = {
     fontFamily: "'Space Grotesk', 'Inter', sans-serif",
     marginTop: 4,
   },
+  metaLine: {
+    ...monoText,
+    color: hudTheme.muted,
+    fontSize: 10,
+    letterSpacing: '0.12em',
+    marginTop: 8,
+  },
   controls: {
     display: 'flex',
     alignItems: 'center',
@@ -168,11 +196,22 @@ const styles: Record<string, React.CSSProperties> = {
   },
   timelineWrap: {
     position: 'relative',
-    padding: '14px 0 2px',
+    padding: '18px 0 2px',
+  },
+  bookmark: {
+    position: 'absolute',
+    top: 0,
+    width: 10,
+    height: 10,
+    border: `1px solid ${hudTheme.amber}`,
+    background: 'rgba(255,215,153,0.14)',
+    transform: 'translateX(-50%) rotate(45deg)',
+    cursor: 'pointer',
+    padding: 0,
   },
   marker: {
     position: 'absolute',
-    top: 0,
+    top: 16,
     width: 2,
     height: 12,
     border: 'none',
