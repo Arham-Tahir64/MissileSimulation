@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
 
 export interface ReplayBookmark {
   id: string;
@@ -21,26 +22,33 @@ interface PlaybackStore {
   clearBookmarks: () => void;
 }
 
-export const usePlaybackStore = create<PlaybackStore>((set) => ({
-  isPlaying: false,
-  speed: 1.0,
-  durationS: 0,
-  bookmarks: [],
+export const usePlaybackStore = create<PlaybackStore>()(
+  persist(
+    (set) => ({
+      isPlaying: false,
+      speed: 1.0,
+      durationS: 0,
+      bookmarks: [],
 
-  setPlaying: (isPlaying) => set({ isPlaying }),
-  setSpeed: (speed) => set({ speed }),
-  setDuration: (durationS) => set({ durationS }),
-  addBookmark: (bookmark) =>
-    set((state) => {
-      const existing = state.bookmarks.find((entry) => entry.id === bookmark.id);
-      if (existing) {
-        return state;
-      }
-      return { bookmarks: [...state.bookmarks, bookmark].sort((a, b) => a.simTimeS - b.simTimeS) };
+      setPlaying: (isPlaying) => set({ isPlaying }),
+      setSpeed: (speed) => set({ speed }),
+      setDuration: (durationS) => set({ durationS }),
+      addBookmark: (bookmark) =>
+        set((state) => {
+          const existing = state.bookmarks.find((entry) => entry.id === bookmark.id);
+          if (existing) return state;
+          return { bookmarks: [...state.bookmarks, bookmark].sort((a, b) => a.simTimeS - b.simTimeS) };
+        }),
+      removeBookmark: (bookmarkId) =>
+        set((state) => ({
+          bookmarks: state.bookmarks.filter((bookmark) => bookmark.id !== bookmarkId),
+        })),
+      clearBookmarks: () => set({ bookmarks: [] }),
     }),
-  removeBookmark: (bookmarkId) =>
-    set((state) => ({
-      bookmarks: state.bookmarks.filter((bookmark) => bookmark.id !== bookmarkId),
-    })),
-  clearBookmarks: () => set({ bookmarks: [] }),
-}));
+    {
+      name: 'replay-bookmarks',
+      storage: createJSONStorage(() => localStorage),
+      partialize: (state) => ({ bookmarks: state.bookmarks }),
+    },
+  ),
+);

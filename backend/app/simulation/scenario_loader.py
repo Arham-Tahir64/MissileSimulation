@@ -31,3 +31,12 @@ class ScenarioLoader:
 
     def get(self, scenario_id: str) -> Optional[ScenarioDefinition]:
         return self._cache.get(scenario_id)
+
+    def save(self, scenario: ScenarioDefinition) -> None:
+        """Persist a scenario to disk and update the in-memory cache."""
+        self._dir.mkdir(parents=True, exist_ok=True)
+        path = self._dir / f"{scenario.metadata.id}.json"
+        tmp = path.with_suffix(".json.tmp")
+        tmp.write_text(scenario.model_dump_json(indent=2))
+        tmp.replace(path)
+        self._cache[scenario.metadata.id] = scenario

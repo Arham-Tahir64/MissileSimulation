@@ -1,8 +1,10 @@
-import { useMemo } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { usePlacementStore } from '../../store/placementStore';
 import { useScenarioStore } from '../../store/scenarioStore';
 import { useSimulationStore } from '../../store/simulationStore';
 import { formatSimTime } from '../../utils/timeUtils';
+import { buildScenario } from '../../utils/scenarioBuilder';
+import { saveScenarioTemplate } from '../../services/scenarioApi';
 import { ScenarioSelector } from '../ScenarioSelector/ScenarioSelector';
 import { AlertRow, HudSnapshot } from '../HUD/hudSelectors';
 import { glassPanel, hudTheme, monoText, sectionTitle } from '../HUD/hudTheme';
@@ -29,6 +31,33 @@ export function OverviewPage({
   const topAlerts = snapshot.alerts.slice(0, 4);
   const queuedLaunches = placements.filter((placement) => placement.kind === 'missile').length;
   const queuedAssets = placements.filter((placement) => placement.kind === 'asset').length;
+
+  const [saveOpen, setSaveOpen] = useState(false);
+  const [saveName, setSaveName] = useState('');
+  const [saving, setSaving] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const saveNameRef = useRef<HTMLInputElement>(null);
+
+  const handleOpenSave = () => {
+    setSaveOpen(true);
+    setSaveName('');
+    setSaving('idle');
+    requestAnimationFrame(() => saveNameRef.current?.focus());
+  };
+
+  const handleSaveTemplate = () => {
+    const name = saveName.trim();
+    if (!name || placements.length === 0) return;
+    const scenario = buildScenario(placements);
+    scenario.metadata.name = name;
+    scenario.metadata.id = `custom_${name.toLowerCase().replace(/\s+/g, '_')}_${Date.now()}`;
+    setSaving('saving');
+    saveScenarioTemplate(scenario)
+      .then(() => {
+        setSaving('saved');
+        setTimeout(() => { setSaveOpen(false); setSaving('idle'); }, 1400);
+      })
+      .catch(() => setSaving('error'));
+  };
 
   const currentRunSummary = useMemo(() => {
     if (!activeScenario) {
@@ -141,6 +170,40 @@ export function OverviewPage({
             <MetaValue label="Queued Assets" value={String(queuedAssets)} />
             <MetaValue label="Builder State" value={phase.toUpperCase()} />
           </div>
+
+          {placements.length > 0 && !saveOpen && (
+            <button type="button" onClick={handleOpenSave} style={styles.saveTemplateButton}>
+              SAVE_AS_TEMPLATE
+            </button>
+          )}
+
+          {saveOpen && (
+            <div style={styles.saveRow}>
+              <input
+                ref={saveNameRef}
+                type="text"
+                placeholder="Template name…"
+                value={saveName}
+                onChange={(e) => setSaveName(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') handleSaveTemplate(); if (e.key === 'Escape') setSaveOpen(false); }}
+                style={styles.saveInput}
+                disabled={saving === 'saving' || saving === 'saved'}
+              />
+              <button
+                type="button"
+                onClick={handleSaveTemplate}
+                disabled={!saveName.trim() || saving === 'saving' || saving === 'saved'}
+                style={{
+                  ...styles.saveConfirm,
+                  opacity: (!saveName.trim() || saving === 'saving' || saving === 'saved') ? 0.45 : 1,
+                  color: saving === 'saved' ? hudTheme.cyanSoft : saving === 'error' ? hudTheme.redSoft : hudTheme.text,
+                }}
+              >
+                {saving === 'saving' ? 'SAVING…' : saving === 'saved' ? 'SAVED ✓' : saving === 'error' ? 'ERROR' : 'CONFIRM'}
+              </button>
+              <button type="button" onClick={() => setSaveOpen(false)} style={styles.saveCancel}>✕</button>
+            </div>
+          )}
         </div>
       </section>
 
@@ -528,6 +591,49 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'grid',
     gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
     gap: 10,
+  },
+  saveTemplateButton: {
+    border: `1px solid ${hudTheme.line}`,
+    background: 'transparent',
+    color: hudTheme.cyanSoft,
+    padding: '10px 14px',
+    fontSize: 10,
+    letterSpacing: '0.16em',
+    cursor: 'pointer',
+    fontFamily: 'inherit',
+    textAlign: 'left' as const,
+  },
+  saveRow: {
+    display: 'grid',
+    gridTemplateColumns: 'minmax(0, 1fr) auto auto',
+    gap: 8,
+  },
+  saveInput: {
+    background: 'rgba(255,255,255,0.04)',
+    border: `1px solid ${hudTheme.line}`,
+    color: hudTheme.text,
+    padding: '10px 12px',
+    fontSize: 13,
+    outline: 'none',
+    fontFamily: 'inherit',
+  },
+  saveConfirm: {
+    border: `1px solid ${hudTheme.line}`,
+    background: 'rgba(0,229,255,0.08)',
+    padding: '10px 14px',
+    fontSize: 10,
+    letterSpacing: '0.14em',
+    cursor: 'pointer',
+    fontFamily: 'inherit',
+  },
+  saveCancel: {
+    border: `1px solid ${hudTheme.line}`,
+    background: 'transparent',
+    color: hudTheme.muted,
+    padding: '10px 12px',
+    fontSize: 12,
+    cursor: 'pointer',
+    fontFamily: 'inherit',
   },
   lowerGrid: {
     display: 'grid',

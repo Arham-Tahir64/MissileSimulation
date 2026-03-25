@@ -35,3 +35,11 @@ class FileRunArchiveStore:
         tmp_path = path.with_suffix(".json.tmp")
         tmp_path.write_text(detail.model_dump_json(indent=2))
         tmp_path.replace(path)
+
+    def delete(self, run_id: str) -> bool:
+        """Delete a run by ID. Returns True if it existed and was deleted."""
+        path = self._root / f"{run_id}.json"
+        if not path.exists():
+            return False
+        path.unlink()
+        return True

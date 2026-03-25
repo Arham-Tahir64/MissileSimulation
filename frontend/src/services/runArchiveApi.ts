@@ -58,6 +58,13 @@ export async function fetchArchivedRun(runId: string): Promise<ArchivedRunDetail
   return mapRunDetail(run);
 }
 
+export async function deleteArchivedRun(runId: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/api/runs/${runId}`, { method: 'DELETE' });
+  if (!res.ok && res.status !== 204) {
+    throw new Error(`Failed to delete run ${runId}: ${res.status}`);
+  }
+}
+
 function mapRunSummary(summary: RawRunSummary): ArchivedRunSummary {
   return {
     id: summary.run_id,

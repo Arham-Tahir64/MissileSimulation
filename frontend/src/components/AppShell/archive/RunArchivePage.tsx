@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { ArchiveRunDetail } from './ArchiveRunDetail';
 import { ArchiveRunComparison } from './ArchiveRunComparison';
 import { ArchiveRunList } from './ArchiveRunList';
-import { fetchArchivedRun, fetchArchivedRuns } from '../../../services/runArchiveApi';
+import { deleteArchivedRun, fetchArchivedRun, fetchArchivedRuns } from '../../../services/runArchiveApi';
 import { ArchivedRunDetail, ArchivedRunSummary } from '../../../types/runArchive';
 import { glassPanel, hudTheme, monoText } from '../../HUD/hudTheme';
 
@@ -119,6 +119,23 @@ export function RunArchivePage({
     return () => { active = false; };
   }, [compareMode, compareRunIds]);
 
+  const handleDeleteRun = (runId: string) => {
+    deleteArchivedRun(runId).then(() => {
+      setRuns((prev) => prev.filter((r) => r.id !== runId));
+      if (selectedRunId === runId) {
+        setSelectedRunId(null);
+        setSelectedRun(null);
+      }
+      setCompareRunIds((prev) => {
+        const next = new Set(prev);
+        next.delete(runId);
+        return next;
+      });
+    }).catch(() => {
+      // silently ignore — the run list will be stale until next refresh
+    });
+  };
+
   const handleToggleCompareMode = () => {
     setCompareMode((prev) => !prev);
     setCompareRunIds(new Set());
@@ -176,6 +193,7 @@ export function RunArchivePage({
             loading={loadingRuns}
             error={listError}
             onSelect={setSelectedRunId}
+            onDelete={handleDeleteRun}
             onToggleCompareMode={handleToggleCompareMode}
             onToggleCompareRun={handleToggleCompareRun}
           />

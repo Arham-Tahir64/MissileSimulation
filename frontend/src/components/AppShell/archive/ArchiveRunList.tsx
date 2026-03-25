@@ -9,6 +9,7 @@ export function ArchiveRunList({
   loading,
   error,
   onSelect,
+  onDelete,
   onToggleCompareMode,
   onToggleCompareRun,
 }: {
@@ -19,6 +20,7 @@ export function ArchiveRunList({
   loading: boolean;
   error: string | null;
   onSelect: (runId: string) => void;
+  onDelete: (runId: string) => void;
   onToggleCompareMode: () => void;
   onToggleCompareRun: (runId: string) => void;
 }) {
@@ -55,11 +57,6 @@ export function ArchiveRunList({
         </div>
       )}
 
-      {!compareMode && (
-        <div style={styles.copy}>
-          Archived runs let you reopen a completed fictional scenario without rebuilding it from scratch.
-        </div>
-      )}
 
       {loading && <div style={styles.message}>Loading run history…</div>}
       {error && !loading && <div style={styles.error}>{error}</div>}
@@ -110,12 +107,13 @@ export function ArchiveRunList({
 
             const selected = run.id === selectedRunId;
             return (
-              <button
+              <div
                 key={run.id}
-                type="button"
+                role="button"
+                tabIndex={0}
                 onClick={() => onSelect(run.id)}
+                onKeyDown={(e) => e.key === 'Enter' && onSelect(run.id)}
                 style={{
-                  ...buttonReset,
                   ...styles.row,
                   background: selected ? 'rgba(0,229,255,0.08)' : 'rgba(255,255,255,0.02)',
                   boxShadow: selected ? 'inset 2px 0 0 #00e5ff' : 'none',
@@ -123,7 +121,17 @@ export function ArchiveRunList({
               >
                 <div style={styles.rowTop}>
                   <div style={styles.rowTitle}>{run.scenario_name}</div>
-                  <StatusPill status={run.status} />
+                  <div style={styles.rowTopRight}>
+                    <StatusPill status={run.status} />
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); onDelete(run.id); }}
+                      style={styles.deleteButton}
+                      title="Delete run"
+                    >
+                      DEL
+                    </button>
+                  </div>
                 </div>
                 <div style={styles.rowMeta}>{run.session_id}</div>
                 <div style={styles.rowGrid}>
@@ -131,7 +139,7 @@ export function ArchiveRunList({
                   <Metric label="Events" value={String(run.event_count)} />
                   <Metric label="Intercepts" value={`${run.intercept_successes}/${run.intercept_misses}`} />
                 </div>
-              </button>
+              </div>
             );
           })}
         </div>
@@ -229,11 +237,6 @@ const styles: Record<string, React.CSSProperties> = {
     lineHeight: 1,
     fontWeight: 700,
   },
-  copy: {
-    color: hudTheme.muted,
-    fontSize: 13,
-    lineHeight: 1.6,
-  },
   message: {
     padding: '16px 14px',
     background: 'rgba(255,255,255,0.03)',
@@ -269,6 +272,22 @@ const styles: Record<string, React.CSSProperties> = {
     justifyContent: 'space-between',
     gap: 12,
     alignItems: 'center',
+  },
+  rowTopRight: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 8,
+    flexShrink: 0,
+  },
+  deleteButton: {
+    border: `1px solid ${hudTheme.line}`,
+    background: 'transparent',
+    color: hudTheme.muted,
+    padding: '5px 8px',
+    fontSize: 10,
+    letterSpacing: '0.12em',
+    cursor: 'pointer',
+    fontFamily: 'inherit',
   },
   rowTitle: {
     color: hudTheme.text,

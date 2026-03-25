@@ -10,6 +10,7 @@ import { CinematicMissileLayer } from './CinematicMissileLayer';
 import { ImpactEffectsLayer } from './ImpactEffectsLayer';
 import { AssetOverlayLayer } from './AssetOverlayLayer';
 import { CoverageLayer } from './CoverageLayer';
+import { InterceptorTrajectoryLayer } from './InterceptorTrajectoryLayer';
 import { useSimulationStore } from '../../store/simulationStore';
 import { useScenarioStore } from '../../store/scenarioStore';
 import { useDashboardStore } from '../../store/dashboardStore';
@@ -73,6 +74,9 @@ export function GlobeViewer() {
           entityDefinitions={activeScenario.entities}
           entities={entities}
         />
+      )}
+      {effectiveLayers.trajectories && (
+        <InterceptorTrajectoryLayer viewer={viewer} />
       )}
 
       {/* ── Interactive placement layers ───────────────────────────── */}

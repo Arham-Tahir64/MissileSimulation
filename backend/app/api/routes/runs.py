@@ -21,3 +21,10 @@ async def get_run(run_id: str, runner: SimulationRunner = Depends(get_runner)):
     if run is None:
         raise HTTPException(status_code=404, detail=f"Run '{run_id}' not found")
     return run
+
+
+@router.delete("/runs/{run_id}", status_code=204)
+async def delete_run(run_id: str, runner: SimulationRunner = Depends(get_runner)):
+    deleted = runner.delete_saved_run(run_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail=f"Run '{run_id}' not found")

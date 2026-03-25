@@ -17,3 +17,9 @@ async def get_scenario(scenario_id: str):
     if scenario is None:
         raise HTTPException(status_code=404, detail=f"Scenario '{scenario_id}' not found")
     return scenario
+
+
+@router.post("/scenarios", response_model=ScenarioMetadata, status_code=201)
+async def save_scenario(scenario: ScenarioDefinition):
+    _loader.save(scenario)
+    return scenario.metadata

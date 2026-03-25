@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
 
 export interface LayerVisibilityState {
   trajectories: boolean;
@@ -36,32 +37,45 @@ const DEFAULT_LAYERS: LayerVisibilityState = {
   rangeRings: true,
 };
 
-export const useDashboardStore = create<DashboardStore>((set) => ({
-  currentPage: 'overview',
-  monitorSection: 'tracks',
-  layers: DEFAULT_LAYERS,
-  reduceMotion: false,
-  density: 'comfortable',
+export const useDashboardStore = create<DashboardStore>()(
+  persist(
+    (set) => ({
+      currentPage: 'overview',
+      monitorSection: 'tracks',
+      layers: DEFAULT_LAYERS,
+      reduceMotion: false,
+      density: 'comfortable',
 
-  setCurrentPage: (currentPage) => set({ currentPage }),
-  setMonitorSection: (monitorSection) => set({ monitorSection }),
+      setCurrentPage: (currentPage) => set({ currentPage }),
+      setMonitorSection: (monitorSection) => set({ monitorSection }),
 
-  setLayerVisibility: (layer, value) =>
-    set((state) => ({
-      layers: {
-        ...state.layers,
-        [layer]: value,
-      },
-    })),
+      setLayerVisibility: (layer, value) =>
+        set((state) => ({
+          layers: {
+            ...state.layers,
+            [layer]: value,
+          },
+        })),
 
-  setReduceMotion: (reduceMotion) => set({ reduceMotion }),
-  setDensity: (density) => set({ density }),
+      setReduceMotion: (reduceMotion) => set({ reduceMotion }),
+      setDensity: (density) => set({ density }),
 
-  reset: () => set({
-    currentPage: 'overview',
-    monitorSection: 'tracks',
-    layers: DEFAULT_LAYERS,
-    reduceMotion: false,
-    density: 'comfortable',
-  }),
-}));
+      reset: () => set({
+        currentPage: 'overview',
+        monitorSection: 'tracks',
+        layers: DEFAULT_LAYERS,
+        reduceMotion: false,
+        density: 'comfortable',
+      }),
+    }),
+    {
+      name: 'dashboard-settings',
+      storage: createJSONStorage(() => localStorage),
+      partialize: (state) => ({
+        layers: state.layers,
+        reduceMotion: state.reduceMotion,
+        density: state.density,
+      }),
+    },
+  ),
+);

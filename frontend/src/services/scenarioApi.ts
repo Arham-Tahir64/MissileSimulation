@@ -13,3 +13,13 @@ export async function fetchScenario(id: string): Promise<ScenarioDefinition> {
   if (!res.ok) throw new Error(`Failed to fetch scenario ${id}: ${res.status}`);
   return res.json() as Promise<ScenarioDefinition>;
 }
+
+export async function saveScenarioTemplate(scenario: ScenarioDefinition): Promise<ScenarioMetadata> {
+  const res = await fetch(`${API_BASE}/api/scenarios`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(scenario),
+  });
+  if (!res.ok) throw new Error(`Failed to save scenario: ${res.status}`);
+  return res.json() as Promise<ScenarioMetadata>;
+}

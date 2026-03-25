@@ -125,6 +125,9 @@ class SimulationRunner:
     def get_saved_run(self, run_id: str) -> RunDetail | None:
         return self._archive.get(run_id)
 
+    def delete_saved_run(self, run_id: str) -> bool:
+        return self._archive.delete(run_id)
+
     def _capture_state(self, session_id: str, state_json: str) -> None:
         session = self._sessions.get(session_id)
         if session is None:
