@@ -1,5 +1,6 @@
 import * as Cesium from 'cesium';
 import { GeoPosition } from '../types/entity';
+import type { ScenarioDefinition } from '../types/scenario';
 
 export function geoToCartesian(pos: GeoPosition): Cesium.Cartesian3 {
   return Cesium.Cartesian3.fromDegrees(pos.lon, pos.lat, pos.alt);
@@ -59,4 +60,37 @@ export function computeBallisticArc(
 /** Convert an array of GeoPositions to a flat Cesium Cartesian3 array. */
 export function geoArrayToCartesian3Array(positions: GeoPosition[]): Cesium.Cartesian3[] {
   return positions.map(geoToCartesian);
+}
+
+/**
+ * Fly the camera to frame all entities in a scenario.
+ * Computes a bounding rectangle from all entity origins and
+ * animates the camera to it with a 2-second duration.
+ */
+export function flyToScenario(viewer: Cesium.Viewer, scenario: ScenarioDefinition): void {
+  const positions = scenario.entities.map((e) => e.origin);
+  if (positions.length === 0) return;
+
+  const lats = positions.map((p) => p.lat);
+  const lons = positions.map((p) => p.lon);
+
+  const minLat = Math.min(...lats);
+  const maxLat = Math.max(...lats);
+  const minLon = Math.min(...lons);
+  const maxLon = Math.max(...lons);
+
+  // Add padding so entities aren't right at the edge
+  const padDeg = 3.0;
+  const rect = Cesium.Rectangle.fromDegrees(
+    minLon - padDeg,
+    minLat - padDeg,
+    maxLon + padDeg,
+    maxLat + padDeg,
+  );
+
+  viewer.camera.flyTo({
+    destination: rect,
+    duration: 2.0,
+    easingFunction: Cesium.EasingFunction.QUADRATIC_IN_OUT,
+  });
 }

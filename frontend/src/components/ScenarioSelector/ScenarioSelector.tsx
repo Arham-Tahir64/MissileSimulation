@@ -1,32 +1,47 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useScenarioStore } from '../../store/scenarioStore';
 import { usePlaybackStore } from '../../store/playbackStore';
 import { fetchScenarios, fetchScenario } from '../../services/scenarioApi';
 import { wsClient } from '../../services/wsClient';
+import { getViewer } from '../../services/viewerRegistry';
+import { flyToScenario } from '../../utils/cesiumHelpers';
 import { ScenarioCard } from './ScenarioCard';
 
 export function ScenarioSelector() {
   const { availableScenarios, setAvailableScenarios, setActiveScenario } = useScenarioStore();
   const setDuration = usePlaybackStore((s) => s.setDuration);
+  const [loadingList, setLoadingList] = useState(true);
+  const [loadingId, setLoadingId] = useState<string | null>(null);
+  const [listError, setListError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchScenarios()
-      .then(setAvailableScenarios)
-      .catch((err) => console.error('Failed to load scenarios', err));
+      .then((scenarios) => {
+        setAvailableScenarios(scenarios);
+        setListError(null);
+      })
+      .catch(() => setListError('Could not reach backend. Is it running?'))
+      .finally(() => setLoadingList(false));
   }, [setAvailableScenarios]);
 
   const handleSelect = async (id: string) => {
+    if (loadingId) return; // prevent double-tap
+    setLoadingId(id);
     try {
       const definition = await fetchScenario(id);
       setActiveScenario(definition);
       setDuration(definition.metadata.duration_s);
 
-      // Generate a simple session ID and connect
+      const viewer = getViewer();
+      if (viewer) flyToScenario(viewer, definition);
+
       const sessionId = `session_${Date.now()}`;
       wsClient.connect(sessionId);
       wsClient.send({ type: 'cmd_load', scenario_id: id });
     } catch (err) {
       console.error('Failed to load scenario', err);
+    } finally {
+      setLoadingId(null);
     }
   };
 
@@ -34,12 +49,16 @@ export function ScenarioSelector() {
     <div style={styles.panel}>
       <div style={styles.title}>Scenarios</div>
       <div style={styles.list}>
-        {availableScenarios.map((s) => (
-          <ScenarioCard key={s.id} scenario={s} onSelect={handleSelect} />
-        ))}
-        {availableScenarios.length === 0 && (
-          <div style={styles.empty}>No scenarios available.</div>
+        {loadingList && <div style={styles.empty}>Loading…</div>}
+        {listError && <div style={{ ...styles.empty, color: '#fc8181' }}>{listError}</div>}
+        {!loadingList && !listError && availableScenarios.length === 0 && (
+          <div style={styles.empty}>No scenarios found.</div>
         )}
+        {availableScenarios.map((s) => (
+          <div key={s.id} style={{ opacity: loadingId === s.id ? 0.5 : 1, transition: 'opacity 0.15s' }}>
+            <ScenarioCard scenario={s} onSelect={handleSelect} />
+          </div>
+        ))}
       </div>
     </div>
   );

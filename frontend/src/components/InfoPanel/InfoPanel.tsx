@@ -1,9 +1,16 @@
-import { useSimulationStore } from '../../store/simulationStore';
+import { useSimulationStore, ConnectionStatus } from '../../store/simulationStore';
 import { EventLog } from './EventLog';
 import { formatSimTime } from '../../utils/timeUtils';
 
+const CONNECTION_COLORS: Record<ConnectionStatus, string> = {
+  connected: '#68d391',
+  disconnected: '#718096',
+  reconnecting: '#f6ad55',
+  error: '#fc8181',
+};
+
 export function InfoPanel() {
-  const { entities, simTimeS, status, scenarioId } = useSimulationStore();
+  const { entities, simTimeS, status, scenarioId, connectionStatus } = useSimulationStore();
 
   const activeEntities = entities.filter((e) => e.status === 'active');
   const interceptedCount = entities.filter((e) => e.status === 'intercepted').length;
@@ -12,7 +19,12 @@ export function InfoPanel() {
     <div style={styles.panel}>
       <div style={styles.header}>
         <div style={styles.title}>Simulation</div>
-        <div style={styles.status}>{status.toUpperCase()}</div>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2 }}>
+          <div style={styles.status}>{status.toUpperCase()}</div>
+          <div style={{ ...styles.status, color: CONNECTION_COLORS[connectionStatus] }}>
+            {connectionStatus === 'reconnecting' ? '↻ reconnecting' : connectionStatus}
+          </div>
+        </div>
       </div>
 
       {scenarioId && (

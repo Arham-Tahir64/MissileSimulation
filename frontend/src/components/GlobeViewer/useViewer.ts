@@ -1,14 +1,20 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import * as Cesium from 'cesium';
+import { registerViewer, unregisterViewer } from '../../services/viewerRegistry';
 
-export function useViewer(containerId: string) {
-  const viewerRef = useRef<Cesium.Viewer | null>(null);
+/**
+ * Initializes a Cesium Viewer inside the DOM element with the given containerId.
+ * Returns the viewer instance via useState so that dependent components re-render
+ * once Cesium is ready (useRef would not trigger a re-render).
+ */
+export function useViewer(containerId: string): Cesium.Viewer | null {
+  const [viewer, setViewer] = useState<Cesium.Viewer | null>(null);
 
   useEffect(() => {
-    // Cesium Ion token — replace with your own or leave empty for offline use
+    // Ion token — replace with your own or leave empty for offline/free basemap use
     Cesium.Ion.defaultAccessToken = import.meta.env.VITE_CESIUM_ION_TOKEN ?? '';
 
-    viewerRef.current = new Cesium.Viewer(containerId, {
+    const v = new Cesium.Viewer(containerId, {
       animation: false,
       baseLayerPicker: false,
       fullscreenButton: false,
@@ -19,18 +25,23 @@ export function useViewer(containerId: string) {
       selectionIndicator: false,
       timeline: false,
       navigationHelpButton: false,
-      creditContainer: document.createElement('div'), // hide credits div
+      creditContainer: document.createElement('div'),
     });
 
-    // Dark space-like background
-    viewerRef.current.scene.backgroundColor = Cesium.Color.fromCssColorString('#0a0a0f');
-    viewerRef.current.scene.globe.enableLighting = true;
+    v.scene.backgroundColor = Cesium.Color.fromCssColorString('#0a0a0f');
+    v.scene.globe.enableLighting = true;
+
+    // Expose to the module-level registry so non-component code can access the viewer
+    registerViewer(v);
+    // Trigger re-render so EntityLayer / TrajectoryLayer receive the real viewer
+    setViewer(v);
 
     return () => {
-      viewerRef.current?.destroy();
-      viewerRef.current = null;
+      unregisterViewer();
+      v.destroy();
+      setViewer(null);
     };
   }, [containerId]);
 
-  return viewerRef;
+  return viewer;
 }
