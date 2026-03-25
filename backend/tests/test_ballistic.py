@@ -53,7 +53,7 @@ def test_altitude_at_midpoint_close_to_apogee(traj: BallisticTrajectory):
     mid_t = traj.flight_time_s / 2
     pos_mid = traj.position_at(mid_t)
     # sin(π * 0.5) == 1.0, so midpoint is exactly at apogee
-    expected_alt = ORIGIN.alt + traj.apogee_alt
+    expected_alt = ((ORIGIN.alt + TARGET.alt) / 2) + traj.apogee_alt
     assert abs(pos_mid.alt - expected_alt) < 1.0
 
 
@@ -95,3 +95,17 @@ def test_different_origin_target_gives_different_flight_time():
         GeoPosition(lat=0.0, lon=0.0, alt=0),
     )
     assert long_.flight_time_s > short.flight_time_s
+
+
+def test_elevated_target_arc_stays_elevated_near_impact():
+    high_target = GeoPosition(lat=34.0, lon=48.5, alt=150_000.0)
+    elevated = BallisticTrajectory(
+        GeoPosition(lat=33.0, lon=48.0, alt=50.0),
+        high_target,
+    )
+
+    near_impact = elevated.position_at(max(0.0, elevated.flight_time_s - 0.1))
+    impact = elevated.position_at(elevated.flight_time_s)
+
+    assert near_impact.alt > 100_000.0
+    assert abs(impact.alt - high_target.alt) < 1e-6

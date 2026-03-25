@@ -9,7 +9,7 @@ export interface LayerVisibilityState {
   rangeRings: boolean;
 }
 
-export type DashboardPage = 'overview' | 'monitor' | 'replay' | 'analysis' | 'settings';
+export type DashboardPage = 'overview' | 'monitor' | 'replay' | 'analysis' | 'archive' | 'settings';
 export type MonitorSection = 'tracks' | 'assets' | 'alerts';
 export type DisplayDensity = 'comfortable' | 'compact';
 

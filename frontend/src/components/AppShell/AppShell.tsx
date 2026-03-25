@@ -4,6 +4,7 @@ import { OverviewPage } from './OverviewPage';
 import { MonitorPage } from './MonitorPage';
 import { ReplayPage } from './ReplayPage';
 import { AnalysisPage } from './AnalysisPage';
+import { RunArchivePage } from './archive/RunArchivePage';
 import { SettingsPage } from './SettingsPage';
 import { getViewer } from '../../services/viewerRegistry';
 import { useCameraStore } from '../../store/cameraStore';
@@ -138,6 +139,7 @@ export function AppShell() {
         ...styles.pageWash,
         opacity:
           currentPage === 'analysis' ? 0.86
+          : currentPage === 'archive' ? 0.82
           : currentPage === 'overview' ? 0.58
           : currentPage === 'settings' ? 0.82
           : 0.38,
@@ -202,6 +204,8 @@ export function AppShell() {
       )}
 
       {currentPage === 'analysis' && <AnalysisPage snapshot={snapshot} />}
+
+      {currentPage === 'archive' && <RunArchivePage />}
 
       {currentPage === 'settings' && (
         <SettingsPage

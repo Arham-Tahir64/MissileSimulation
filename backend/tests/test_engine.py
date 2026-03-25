@@ -7,6 +7,8 @@ from app.models.schema.scenario import (
     GeoPosition, EntityType, TrajectoryType,
 )
 from app.simulation.engine import SimulationEngine
+from app.simulation.runner import SimulationRunner
+from app.persistence.run_archive import FileRunArchiveStore
 
 
 def _make_scenario(duration_s: float = 60.0, tick_rate_hz: float = 10.0) -> ScenarioDefinition:
@@ -244,3 +246,30 @@ async def test_seek_rebuilds_defense_runtime_state_and_events():
     assert "ARW-1" in entities_by_id
     assert "sensor_track" in event_types
     assert "engagement_order" in event_types
+
+
+@pytest.mark.asyncio
+async def test_runner_persists_completed_run_to_archive(tmp_path):
+    messages: list[dict] = []
+
+    async def push(json_str: str):
+        messages.append(json.loads(json_str))
+
+    runner = SimulationRunner(archive_store=FileRunArchiveStore(tmp_path))
+    runner.register_push("sess-archive-1", push)
+
+    scenario = _make_scenario(duration_s=0.5, tick_rate_hz=10.0)
+    await runner.load_definition("sess-archive-1", scenario)
+    await asyncio.wait_for(runner.play("sess-archive-1", speed=100.0), timeout=5.0)
+
+    summaries = runner.list_saved_runs()
+    assert len(summaries) == 1
+    summary = summaries[0]
+    assert summary.scenario_id == scenario.metadata.id
+    assert summary.status == "completed"
+
+    detail = runner.get_saved_run(summary.run_id)
+    assert detail is not None
+    assert detail.summary.run_id == summary.run_id
+    assert detail.scenario.metadata.id == scenario.metadata.id
+    assert detail.final_state.status == "completed"

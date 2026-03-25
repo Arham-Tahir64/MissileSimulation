@@ -32,11 +32,13 @@ export function GlobeViewer() {
       layers.impactEffects
       && currentPage !== 'overview'
       && currentPage !== 'analysis'
+      && currentPage !== 'archive'
       && currentPage !== 'settings',
     assetOverlays:
       layers.assetOverlays
       && currentPage !== 'overview'
-      && currentPage !== 'analysis',
+      && currentPage !== 'analysis'
+      && currentPage !== 'archive',
     labels: layers.labels && currentPage === 'monitor',
     rangeRings: layers.rangeRings && currentPage === 'monitor',
   };

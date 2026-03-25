@@ -1,12 +1,11 @@
 import asyncio
 import json
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
-from app.simulation.runner import SimulationRunner
-from app.models.schema.ws_messages import ClientMessage, CmdLoad, CmdPlay, CmdPause, CmdSeek, CmdSetSpeed
+from app.simulation.runner import simulation_runner
+from app.models.schema.ws_messages import CmdLoad, CmdPlay, CmdPause, CmdSeek, CmdSetSpeed
 from app.models.schema.scenario import ScenarioDefinition
 
 router = APIRouter()
-_runner = SimulationRunner()
 
 
 @router.websocket("/ws/simulation/{session_id}")
@@ -29,7 +28,7 @@ async def simulation_ws(websocket: WebSocket, session_id: str):
         except Exception:
             pass
 
-    _runner.register_push(session_id, push_state)
+    simulation_runner.register_push(session_id, push_state)
 
     try:
         while True:
@@ -40,7 +39,7 @@ async def simulation_ws(websocket: WebSocket, session_id: str):
 
                 if msg_type == "cmd_load":
                     msg = CmdLoad(**data)
-                    await _runner.load(session_id, msg.scenario_id)
+                    await simulation_runner.load(session_id, msg.scenario_id)
                     await websocket.send_text(json.dumps({
                         "type": "sim_status",
                         "session_id": session_id,
@@ -51,7 +50,7 @@ async def simulation_ws(websocket: WebSocket, session_id: str):
 
                 elif msg_type == "cmd_load_definition":
                     scenario = ScenarioDefinition(**data["definition"])
-                    await _runner.load_definition(session_id, scenario)
+                    await simulation_runner.load_definition(session_id, scenario)
                     await websocket.send_text(json.dumps({
                         "type": "sim_status",
                         "session_id": session_id,
@@ -62,18 +61,18 @@ async def simulation_ws(websocket: WebSocket, session_id: str):
 
                 elif msg_type == "cmd_play":
                     msg = CmdPlay(**data)
-                    asyncio.create_task(_runner.play(session_id, msg.playback_speed))
+                    asyncio.create_task(simulation_runner.play(session_id, msg.playback_speed))
 
                 elif msg_type == "cmd_pause":
-                    await _runner.pause(session_id)
+                    await simulation_runner.pause(session_id)
 
                 elif msg_type == "cmd_seek":
                     msg = CmdSeek(**data)
-                    await _runner.seek(session_id, msg.target_time_s)
+                    await simulation_runner.seek(session_id, msg.target_time_s)
 
                 elif msg_type == "cmd_set_speed":
                     msg = CmdSetSpeed(**data)
-                    await _runner.set_speed(session_id, msg.speed)
+                    await simulation_runner.set_speed(session_id, msg.speed)
 
             except Exception as e:
                 await websocket.send_text(json.dumps({
@@ -86,4 +85,4 @@ async def simulation_ws(websocket: WebSocket, session_id: str):
     except WebSocketDisconnect:
         pass
     finally:
-        _runner.unregister(session_id)
+        simulation_runner.unregister(session_id)

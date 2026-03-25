@@ -279,15 +279,37 @@ function buildSelectionDetail(
     };
   }
 
+  const latestEvent = latestEventMap.get(selectedEntity.id) ?? null;
+  const linkedTargetId =
+    selectedEntity.current_target_id
+    ?? (latestEvent && (latestEvent.type === 'engagement_order' || latestEvent.type === 'event_intercept')
+      ? latestEvent.threat_id
+      : null);
+  const linkedTarget = linkedTargetId
+    ? entities.find((entity) => entity.id === linkedTargetId) ?? null
+    : null;
   const terminalTarget = definition?.target
     ?? definition?.waypoints?.[definition.waypoints.length - 1]
     ?? null;
-  const etaS = definition
-    ? Math.max(0, definition.launch_time_s + computeFlightTimeS(definition) - simTimeS)
-    : 0;
-  const distanceToTarget = terminalTarget
-    ? haversineDistanceM(selectedEntity.position, terminalTarget) / 1000
-    : 0;
+  const trackTargetPosition = linkedTarget?.position ?? terminalTarget ?? null;
+  const distanceToTargetKm = trackTargetPosition
+    ? haversineDistanceM(selectedEntity.position, trackTargetPosition) / 1000
+    : null;
+
+  let etaLabel = 'PENDING';
+  if (selectedEntity.type === 'interceptor' && linkedTarget && selectedEntity.velocity_ms > 0) {
+    const etaS = (distanceToTargetKm ?? 0) * 1000 / selectedEntity.velocity_ms;
+    etaLabel = `${Math.max(0, etaS).toFixed(1)} SEC`;
+  } else if (definition) {
+    const etaS = Math.max(0, definition.launch_time_s + computeFlightTimeS(definition) - simTimeS);
+    etaLabel = `${etaS.toFixed(1)} SEC`;
+  }
+
+  const targetLabel = linkedTarget
+    ? getEntityDisplayName(linkedTarget)
+    : terminalTarget
+      ? `${terminalTarget.lat.toFixed(2)}, ${terminalTarget.lon.toFixed(2)}`
+      : 'LINK_PENDING';
 
   return {
     kind: 'track',
@@ -300,9 +322,9 @@ function buildSelectionDetail(
       { label: 'Status', value: selectedEntity.status.toUpperCase() },
       { label: 'Altitude', value: `${(selectedEntity.position.alt * 3.28084).toLocaleString(undefined, { maximumFractionDigits: 0 })} FT`, tone: 'cyan' },
       { label: 'Velocity', value: `${(selectedEntity.velocity_ms / 343).toFixed(1)} MACH` },
-      { label: 'ETA', value: `${etaS.toFixed(1)} SEC`, tone: 'amber' },
-      { label: 'Distance', value: `${distanceToTarget.toFixed(1)} KM` },
-      { label: 'Target', value: terminalTarget ? `${terminalTarget.lat.toFixed(2)}, ${terminalTarget.lon.toFixed(2)}` : 'N/A' },
+      { label: 'ETA', value: etaLabel, tone: etaLabel === 'PENDING' ? undefined : 'amber' },
+      { label: 'Distance', value: distanceToTargetKm != null ? `${distanceToTargetKm.toFixed(1)} KM` : 'N/A' },
+      { label: 'Target', value: targetLabel, tone: linkedTarget ? 'cyan' : undefined },
     ],
     latestEventLabel,
   };

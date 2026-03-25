@@ -66,7 +66,10 @@ class BallisticTrajectory:
         frac = t / self.flight_time_s
         base = _lerp_geo(self.origin, self.target, frac)
         alt_offset = self.apogee_alt * math.sin(math.pi * frac)
-        return GeoPosition(lat=base.lat, lon=base.lon, alt=self.origin.alt + alt_offset)
+        # Preserve the target altitude through the whole arc instead of snapping
+        # back to it only at the final sample. This keeps elevated intercepts
+        # visually continuous.
+        return GeoPosition(lat=base.lat, lon=base.lon, alt=base.alt + alt_offset)
 
     def velocity_ms_at(self, t: float) -> float:
         """Approximate scalar speed (constant for simplicity)."""

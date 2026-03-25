@@ -6,6 +6,7 @@ const NAV_ITEMS: Array<{ page: DashboardPage; label: string }> = [
   { page: 'monitor', label: 'Monitor' },
   { page: 'replay', label: 'Replay' },
   { page: 'analysis', label: 'Analysis' },
+  { page: 'archive', label: 'Archive' },
   { page: 'settings', label: 'Settings' },
 ];
 
@@ -41,6 +42,28 @@ export function TopNav({
       </div>
 
       <div style={styles.actions}>
+        <button
+          onClick={() => onNavigate('archive')}
+          style={{
+            ...styles.archiveButton,
+            boxShadow: currentPage === 'archive' ? 'inset 2px 0 0 #00e5ff' : 'none',
+          }}
+        >
+          <span style={styles.archiveButtonTitle}>
+            {status === 'completed'
+              ? 'VIEW_AUTO_SAVE'
+              : status === 'running' || status === 'paused'
+                ? 'ARCHIVE_QUEUE'
+                : 'OPEN_ARCHIVE'}
+          </span>
+          <span style={styles.archiveButtonHint}>
+            {status === 'completed'
+              ? 'RUN ARCHIVED'
+              : status === 'running' || status === 'paused'
+                ? 'AUTO-SAVES ON COMPLETE'
+                : 'BROWSE SAVED RUNS'}
+          </span>
+        </button>
         {showGlobeView && (
           <button onClick={onGlobeView} style={styles.globeButton}>
             GLOBE_VIEW
@@ -113,6 +136,31 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'flex',
     alignItems: 'center',
     gap: 18,
+  },
+  archiveButton: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    gap: 4,
+    border: `1px solid ${hudTheme.line}`,
+    background: 'linear-gradient(180deg, rgba(0,229,255,0.12), rgba(10,16,22,0.84))',
+    color: hudTheme.text,
+    padding: '9px 12px 8px',
+    cursor: 'pointer',
+    minWidth: 174,
+  },
+  archiveButtonTitle: {
+    fontSize: 11,
+    letterSpacing: '0.16em',
+    textTransform: 'uppercase',
+    color: hudTheme.cyanSoft,
+  },
+  archiveButtonHint: {
+    ...monoText,
+    fontSize: 9,
+    letterSpacing: '0.14em',
+    textTransform: 'uppercase',
+    color: hudTheme.muted,
   },
   globeButton: {
     border: `1px solid ${hudTheme.line}`,

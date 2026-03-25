@@ -3,6 +3,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routes.health import router as health_router
+from app.api.routes.runs import router as runs_router
 from app.api.routes.scenarios import router as scenarios_router
 from app.api.websocket.sim_ws import router as ws_router
 
@@ -30,5 +31,6 @@ app.add_middleware(
 )
 
 app.include_router(health_router, prefix="/api")
+app.include_router(runs_router, prefix="/api")
 app.include_router(scenarios_router, prefix="/api")
 app.include_router(ws_router)
