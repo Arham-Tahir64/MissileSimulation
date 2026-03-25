@@ -1,5 +1,4 @@
-import { useId, useEffect, useRef } from 'react';
-import * as Cesium from 'cesium';
+import { useId } from 'react';
 import { useViewer } from './useViewer';
 import { EntityLayer } from './EntityLayer';
 import { TrajectoryLayer } from './TrajectoryLayer';
@@ -8,9 +7,9 @@ import { ReachRadiusLayer } from './ReachRadiusLayer';
 import { PlacementMarkerLayer } from './PlacementMarkerLayer';
 import { CinematicCameraController } from './CinematicCameraController';
 import { CinematicMissileLayer } from './CinematicMissileLayer';
+import { ImpactEffectsLayer } from './ImpactEffectsLayer';
 import { useSimulationStore } from '../../store/simulationStore';
 import { useScenarioStore } from '../../store/scenarioStore';
-import { geoToCartesian } from '../../utils/cesiumHelpers';
 
 export function GlobeViewer() {
   const rawId = useId();
@@ -19,45 +18,7 @@ export function GlobeViewer() {
   const viewer = useViewer(containerId);
 
   const entities       = useSimulationStore((s) => s.entities);
-  const events         = useSimulationStore((s) => s.events);
   const activeScenario = useScenarioStore((s) => s.activeScenario);
-
-  const processedEventsRef = useRef<Set<string>>(new Set());
-
-  // ── Intercept burst effect ───────────────────────────────────────────────
-  useEffect(() => {
-    if (!viewer) return;
-    for (const evt of events) {
-      if (processedEventsRef.current.has(evt.event_id)) continue;
-      processedEventsRef.current.add(evt.event_id);
-
-      const pos = geoToCartesian(evt.position);
-      const ring = viewer.entities.add({
-        position: pos,
-        point: {
-          pixelSize:    44,
-          color:        Cesium.Color.ORANGE.withAlpha(0.35),
-          outlineColor: Cesium.Color.YELLOW.withAlpha(0.9),
-          outlineWidth: 2,
-          disableDepthTestDistance: Number.POSITIVE_INFINITY,
-        },
-      });
-      const core = viewer.entities.add({
-        position: pos,
-        point: {
-          pixelSize:    18,
-          color:        Cesium.Color.WHITE.withAlpha(0.95),
-          disableDepthTestDistance: Number.POSITIVE_INFINITY,
-        },
-      });
-      setTimeout(() => {
-        if (!viewer.isDestroyed()) {
-          viewer.entities.remove(ring);
-          viewer.entities.remove(core);
-        }
-      }, 1500);
-    }
-  }, [viewer, events]);
 
   return (
     // Fill whatever container GlobeViewer is placed in
@@ -68,6 +29,7 @@ export function GlobeViewer() {
       <CinematicCameraController viewer={viewer} />
       <EntityLayer viewer={viewer} entities={entities} />
       <CinematicMissileLayer viewer={viewer} />
+      <ImpactEffectsLayer viewer={viewer} />
       {activeScenario && (
         <TrajectoryLayer
           viewer={viewer}

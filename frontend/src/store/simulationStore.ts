@@ -31,7 +31,11 @@ export const useSimulationStore = create<SimulationStore>((set) => ({
   setSimState: (patch) => set((s) => ({ ...s, ...patch })),
 
   addEvent: (event) =>
-    set((s) => ({ events: [...s.events, event] })),
+    set((s) => (
+      s.events.some((existing) => existing.event_id === event.event_id)
+        ? s
+        : { events: [...s.events, event] }
+    )),
 
   setConnectionStatus: (connectionStatus) => set({ connectionStatus }),
 
