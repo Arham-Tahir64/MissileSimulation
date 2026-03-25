@@ -1,10 +1,11 @@
 import { GlobeViewer } from './components/GlobeViewer/GlobeViewer';
 import { MissileTypePicker } from './components/MissileTypePicker/MissileTypePicker';
 import { LaunchPanel } from './components/Launch/LaunchPanel';
-import { InfoPanel } from './components/InfoPanel/InfoPanel';
-import { PlaybackControls } from './components/Playback/PlaybackControls';
+import { TacticalShell } from './components/HUD/TacticalShell';
+import { useEffect } from 'react';
 import { usePlacementStore } from './store/placementStore';
 import { useSimulationStore } from './store/simulationStore';
+import { useCameraStore } from './store/cameraStore';
 
 /**
  * Full-screen globe layout with floating overlay panels.
@@ -17,8 +18,15 @@ import { useSimulationStore } from './store/simulationStore';
 export function App() {
   const phase  = usePlacementStore((s) => s.phase);
   const status = useSimulationStore((s) => s.status);
+  const resetCamera = useCameraStore((s) => s.reset);
 
-  const showPlayback = phase === 'simulating' || status !== 'idle';
+  const showSimulationHud = phase === 'simulating' || status !== 'idle';
+
+  useEffect(() => {
+    if (phase === 'idle' && status === 'idle') {
+      resetCamera();
+    }
+  }, [phase, resetCamera, status]);
 
   return (
     <div style={styles.root}>
@@ -28,22 +36,19 @@ export function App() {
       </div>
 
       {/* ── Top-left: missile type picker ──────────────────────────── */}
-      <div style={styles.topLeft}>
-        <MissileTypePicker />
-      </div>
-
-      {/* ── Top-right: live simulation info ────────────────────────── */}
-      {(phase === 'simulating' || status !== 'idle') && (
-        <div style={styles.topRight}>
-          <InfoPanel />
+      {!showSimulationHud && (
+        <div style={styles.topLeft}>
+          <MissileTypePicker />
         </div>
       )}
 
-      {/* ── Bottom strip: launch confirmation OR playback controls ──── */}
-      <div style={styles.bottom}>
-        {phase === 'target_set' && <LaunchPanel />}
-        {showPlayback && <PlaybackControls />}
-      </div>
+      {phase === 'target_set' && (
+        <div style={styles.bottom}>
+          <LaunchPanel />
+        </div>
+      )}
+
+      {showSimulationHud && <TacticalShell />}
     </div>
   );
 }
@@ -66,12 +71,6 @@ const styles: Record<string, React.CSSProperties> = {
     position: 'absolute',
     top: 16,
     left: 16,
-    zIndex: 10,
-  },
-  topRight: {
-    position: 'absolute',
-    top: 16,
-    right: 16,
     zIndex: 10,
   },
   bottom: {

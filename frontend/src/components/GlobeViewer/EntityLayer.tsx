@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import * as Cesium from 'cesium';
 import { EntityState, EntityStatus } from '../../types/entity';
 import { geoToCartesian, entityColor, getMissileIcon } from '../../utils/cesiumHelpers';
+import { useCameraStore } from '../../store/cameraStore';
 
 interface Props {
   viewer: Cesium.Viewer | null;
@@ -33,6 +34,8 @@ function setPositionValue(
 }
 
 export function EntityLayer({ viewer, entities }: Props) {
+  const mode = useCameraStore((s) => s.mode);
+  const trackedEntityId = useCameraStore((s) => s.trackedEntityId);
   const entityMapRef  = useRef<Map<string, Cesium.Entity>>(new Map());
   const trailMapRef   = useRef<Map<string, Cesium.Entity>>(new Map());
   const historyRef    = useRef<Map<string, Cesium.Cartesian3[]>>(new Map());
@@ -56,6 +59,7 @@ export function EntityLayer({ viewer, entities }: Props) {
         state.status === 'missed';
       const isSensor   = state.type === 'sensor';
       const prevStatus = prevStatusRef.current.get(state.id);
+      const hideBaseVisual = mode === 'follow' && trackedEntityId === state.id;
 
       const existing = entityMapRef.current.get(state.id);
 
@@ -68,12 +72,20 @@ export function EntityLayer({ viewer, entities }: Props) {
           const displayColor = isTerminated
             ? Cesium.Color.GRAY.withAlpha(0.4)
             : color;
+          const billboardScale = hideBaseVisual ? 0.001 : 1;
           existing.billboard.color = setConstantValue(existing.billboard.color, displayColor);
-          existing.billboard.show = setConstantValue(existing.billboard.show, !isInactive);
+          existing.billboard.show = setConstantValue(
+            existing.billboard.show,
+            !isInactive && !hideBaseVisual,
+          );
           existing.billboard.rotation = setConstantValue(
             existing.billboard.rotation,
             -Cesium.Math.toRadians(state.heading_deg),
           );
+          existing.billboard.scale = setConstantValue(existing.billboard.scale, billboardScale);
+        }
+        if (existing.label) {
+          existing.label.show = setConstantValue(existing.label.show, !hideBaseVisual);
         }
         if (existing.point) {
           const displayColor = isTerminated
@@ -115,7 +127,8 @@ export function EntityLayer({ viewer, entities }: Props) {
             color,
             rotation:  -Cesium.Math.toRadians(state.heading_deg),
             alignedAxis: Cesium.Cartesian3.UNIT_Z,
-            show:      !isInactive,
+            show:      !isInactive && !hideBaseVisual,
+            scale:     hideBaseVisual ? 0.001 : 1,
             disableDepthTestDistance: Number.POSITIVE_INFINITY,
           };
         }
@@ -189,7 +202,7 @@ export function EntityLayer({ viewer, entities }: Props) {
         prevStatusRef.current.delete(id);
       }
     }
-  }, [viewer, entities]);
+  }, [viewer, entities, mode, trackedEntityId]);
 
   // Cleanup on unmount
   useEffect(() => {

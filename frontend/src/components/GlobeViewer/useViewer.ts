@@ -1,6 +1,12 @@
 import { useEffect, useState } from 'react';
 import * as Cesium from 'cesium';
-import { registerViewer, unregisterViewer } from '../../services/viewerRegistry';
+import {
+  registerViewer,
+  registerViewerReset,
+  unregisterViewer,
+} from '../../services/viewerRegistry';
+
+const DEFAULT_VIEW = Cesium.Rectangle.fromDegrees(-145, -28, 110, 62);
 
 /**
  * Initializes a Cesium Viewer inside the DOM element with the given containerId.
@@ -30,7 +36,26 @@ export function useViewer(containerId: string): Cesium.Viewer | null {
     });
 
     v.scene.backgroundColor = Cesium.Color.fromCssColorString('#0a0a0f');
+    v.scene.highDynamicRange = true;
     v.scene.globe.enableLighting = true;
+    v.scene.globe.showGroundAtmosphere = true;
+    v.scene.globe.depthTestAgainstTerrain = true;
+    v.scene.fog.enabled = true;
+    if (v.scene.skyAtmosphere) v.scene.skyAtmosphere.show = true;
+    if (v.scene.sun) v.scene.sun.show = false;
+    if (v.scene.moon) v.scene.moon.show = false;
+
+    const resetToDefaultView = () => {
+      if (v.isDestroyed()) return;
+      v.camera.lookAtTransform(Cesium.Matrix4.IDENTITY);
+      v.camera.flyTo({
+        destination: DEFAULT_VIEW,
+        duration: 1.6,
+        easingFunction: Cesium.EasingFunction.QUADRATIC_IN_OUT,
+      });
+    };
+
+    v.camera.setView({ destination: DEFAULT_VIEW });
 
     // World Terrain (3D elevation) via Ion
     Cesium.createWorldTerrainAsync().then((terrain) => {
@@ -43,6 +68,7 @@ export function useViewer(containerId: string): Cesium.Viewer | null {
     }).catch(() => {});
 
     registerViewer(v);
+    registerViewerReset(resetToDefaultView);
     setViewer(v);
 
     return () => {

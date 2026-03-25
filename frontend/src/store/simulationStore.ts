@@ -36,5 +36,13 @@ export const useSimulationStore = create<SimulationStore>((set) => ({
   setConnectionStatus: (connectionStatus) => set({ connectionStatus }),
 
   reset: () =>
-    set({ sessionId: null, scenarioId: null, simTimeS: 0, status: 'idle', entities: [], events: [] }),
+    set({
+      sessionId: null,
+      scenarioId: null,
+      simTimeS: 0,
+      status: 'idle',
+      connectionStatus: 'disconnected',
+      entities: [],
+      events: [],
+    }),
 }));

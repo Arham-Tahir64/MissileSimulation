@@ -1,6 +1,7 @@
 import { usePlacementStore } from '../../store/placementStore';
 import { useScenarioStore } from '../../store/scenarioStore';
 import { usePlaybackStore } from '../../store/playbackStore';
+import { useCameraStore } from '../../store/cameraStore';
 import { wsClient } from '../../services/wsClient';
 import { buildScenario } from '../../utils/scenarioBuilder';
 import { getMissileTypeConfig, estimateFlightTimeS } from '../../config/missileTypes';
@@ -18,7 +19,8 @@ export function LaunchPanel() {
   const { phase, missileType, origin, target, beginSimulation, reset } =
     usePlacementStore();
   const { setActiveScenario } = useScenarioStore();
-  const { setDuration } = usePlaybackStore();
+  const { setDuration, setPlaying } = usePlaybackStore();
+  const primeFollow = useCameraStore((s) => s.primeFollow);
 
   if (phase !== 'target_set') return null;
   if (!missileType || !origin || !target) return null;
@@ -33,6 +35,8 @@ export function LaunchPanel() {
     // Register scenario so TrajectoryLayer / InfoPanel have context
     setActiveScenario(scenario);
     setDuration(scenario.metadata.duration_s);
+    setPlaying(true);
+    primeFollow(scenario.entities[0]?.id ?? null);
 
     // Open a fresh session, load definition, then play
     wsClient.connect(`session_${Date.now()}`);

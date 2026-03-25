@@ -7,6 +7,7 @@
 import type * as CesiumType from 'cesium';
 
 let _viewer: CesiumType.Viewer | null = null;
+let _resetToDefaultView: (() => void) | null = null;
 
 export function registerViewer(viewer: CesiumType.Viewer): void {
   _viewer = viewer;
@@ -14,8 +15,17 @@ export function registerViewer(viewer: CesiumType.Viewer): void {
 
 export function unregisterViewer(): void {
   _viewer = null;
+  _resetToDefaultView = null;
 }
 
 export function getViewer(): CesiumType.Viewer | null {
   return _viewer;
+}
+
+export function registerViewerReset(resetFn: () => void): void {
+  _resetToDefaultView = resetFn;
+}
+
+export function resetViewerToDefaultView(): void {
+  _resetToDefaultView?.();
 }

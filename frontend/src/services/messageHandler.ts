@@ -15,6 +15,9 @@ export function handleServerMessage(msg: ServerMessage): void {
         status: msg.status,
         entities: msg.entities,
       });
+      if (msg.status === 'running') {
+        setPlaying(true);
+      }
       // Any new interception events bundled in the state frame
       msg.events.forEach((ev) =>
         addEvent({
@@ -41,9 +44,7 @@ export function handleServerMessage(msg: ServerMessage): void {
 
     case 'sim_status':
       setSimState({ status: msg.status, simTimeS: msg.sim_time_s });
-      if (msg.status === 'completed' || msg.status === 'paused') {
-        setPlaying(false);
-      }
+      setPlaying(msg.status === 'running');
       break;
 
     case 'error':

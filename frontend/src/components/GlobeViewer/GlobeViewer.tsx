@@ -6,6 +6,8 @@ import { TrajectoryLayer } from './TrajectoryLayer';
 import { GlobeClickHandler } from './GlobeClickHandler';
 import { ReachRadiusLayer } from './ReachRadiusLayer';
 import { PlacementMarkerLayer } from './PlacementMarkerLayer';
+import { CinematicCameraController } from './CinematicCameraController';
+import { CinematicMissileLayer } from './CinematicMissileLayer';
 import { useSimulationStore } from '../../store/simulationStore';
 import { useScenarioStore } from '../../store/scenarioStore';
 import { geoToCartesian } from '../../utils/cesiumHelpers';
@@ -63,7 +65,9 @@ export function GlobeViewer() {
       <div id={containerId} style={{ width: '100%', height: '100%' }} />
 
       {/* ── Simulation layers ──────────────────────────────────────── */}
+      <CinematicCameraController viewer={viewer} />
       <EntityLayer viewer={viewer} entities={entities} />
+      <CinematicMissileLayer viewer={viewer} />
       {activeScenario && (
         <TrajectoryLayer
           viewer={viewer}
