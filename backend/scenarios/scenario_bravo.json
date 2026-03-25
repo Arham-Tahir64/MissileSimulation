@@ -1,0 +1,95 @@
+{
+  "metadata": {
+    "id": "scenario_bravo",
+    "name": "Operation Iron Curtain — Bravo",
+    "description": "Two cruise threats fly low-altitude waypoint routes toward a fictional defended zone. Two interceptors are allocated one each. Demonstrates cruise trajectory modeling and layered defense concepts.",
+    "duration_s": 200,
+    "tick_rate_hz": 10,
+    "threat_count": 2,
+    "interceptor_count": 2,
+    "tags": ["cruise", "multi-threat", "layered-defense"]
+  },
+  "entities": [
+    {
+      "id": "T-1",
+      "type": "cruise_threat",
+      "label": "Cruise Threat Alpha",
+      "designator": "T-1",
+      "trajectory_type": "cruise",
+      "origin": { "lat": 36.0, "lon": 50.0, "alt": 500 },
+      "waypoints": [
+        { "lat": 35.0, "lon": 47.0, "alt": 500 },
+        { "lat": 33.5, "lon": 45.5, "alt": 500 }
+      ],
+      "target": { "lat": 32.0, "lon": 44.0, "alt": 0 },
+      "launch_time_s": 0,
+      "speed_ms": 220
+    },
+    {
+      "id": "T-2",
+      "type": "cruise_threat",
+      "label": "Cruise Threat Bravo",
+      "designator": "T-2",
+      "trajectory_type": "cruise",
+      "origin": { "lat": 36.5, "lon": 51.0, "alt": 600 },
+      "waypoints": [
+        { "lat": 35.5, "lon": 48.0, "alt": 600 },
+        { "lat": 34.0, "lon": 46.0, "alt": 600 }
+      ],
+      "target": { "lat": 32.5, "lon": 44.5, "alt": 0 },
+      "launch_time_s": 15.0,
+      "speed_ms": 200
+    },
+    {
+      "id": "INT-A",
+      "type": "interceptor",
+      "label": "Interceptor Alpha",
+      "designator": "INT-A",
+      "trajectory_type": "cruise",
+      "origin": { "lat": 31.5, "lon": 44.0, "alt": 50 },
+      "waypoints": [
+        { "lat": 32.5, "lon": 45.5, "alt": 3000 }
+      ],
+      "target": { "lat": 33.5, "lon": 46.0, "alt": 500 },
+      "launch_time_s": 25.0,
+      "speed_ms": 400
+    },
+    {
+      "id": "INT-B",
+      "type": "interceptor",
+      "label": "Interceptor Bravo",
+      "designator": "INT-B",
+      "trajectory_type": "cruise",
+      "origin": { "lat": 31.8, "lon": 44.5, "alt": 50 },
+      "waypoints": [
+        { "lat": 33.0, "lon": 46.0, "alt": 3000 }
+      ],
+      "target": { "lat": 34.0, "lon": 47.0, "alt": 600 },
+      "launch_time_s": 40.0,
+      "speed_ms": 380
+    },
+    {
+      "id": "SNS-1",
+      "type": "sensor",
+      "label": "Radar Station Foxtrot",
+      "designator": "SNS-1",
+      "trajectory_type": "stationary",
+      "origin": { "lat": 32.0, "lon": 44.2, "alt": 300 },
+      "launch_time_s": 0
+    }
+  ],
+  "events": [
+    {
+      "time_s": 28.0,
+      "type": "sensor_track",
+      "entity_ids": ["SNS-1", "T-1"],
+      "label": "Radar Station Foxtrot acquires Cruise Threat Alpha"
+    },
+    {
+      "time_s": 45.0,
+      "type": "sensor_track",
+      "entity_ids": ["SNS-1", "T-2"],
+      "label": "Radar Station Foxtrot acquires Cruise Threat Bravo"
+    }
+  ]
+}

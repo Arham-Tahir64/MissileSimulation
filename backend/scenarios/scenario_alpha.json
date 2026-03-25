@@ -1,0 +1,57 @@
+{
+  "metadata": {
+    "id": "scenario_alpha",
+    "name": "Operation Pale Horse — Alpha",
+    "description": "A single ballistic threat on a lofted arc is launched from a fictional inland origin. One ground-based interceptor attempts mid-course engagement. Demonstrates ballistic arc physics and geometric intercept geometry.",
+    "duration_s": 150,
+    "tick_rate_hz": 10,
+    "threat_count": 1,
+    "interceptor_count": 1,
+    "tags": ["ballistic", "single-layer", "mid-course"]
+  },
+  "entities": [
+    {
+      "id": "T-1",
+      "type": "ballistic_threat",
+      "label": "Threat Alpha",
+      "designator": "T-1",
+      "trajectory_type": "ballistic",
+      "origin": { "lat": 35.5, "lon": 52.0, "alt": 100 },
+      "target": { "lat": 32.0, "lon": 44.5, "alt": 0 },
+      "launch_time_s": 0
+    },
+    {
+      "id": "INT-A",
+      "type": "interceptor",
+      "label": "Interceptor Alpha",
+      "designator": "INT-A",
+      "trajectory_type": "ballistic",
+      "origin": { "lat": 31.5, "lon": 44.8, "alt": 50 },
+      "target": { "lat": 34.0, "lon": 48.5, "alt": 150000 },
+      "launch_time_s": 20.0
+    },
+    {
+      "id": "SNS-1",
+      "type": "sensor",
+      "label": "Tracking Station Bravo",
+      "designator": "SNS-1",
+      "trajectory_type": "stationary",
+      "origin": { "lat": 31.0, "lon": 43.5, "alt": 200 },
+      "launch_time_s": 0
+    }
+  ],
+  "events": [
+    {
+      "time_s": 22.0,
+      "type": "sensor_track",
+      "entity_ids": ["SNS-1", "T-1"],
+      "label": "Tracking Station Bravo acquires track on Threat Alpha"
+    },
+    {
+      "time_s": 60.0,
+      "type": "intercept_attempt",
+      "entity_ids": ["INT-A", "T-1"],
+      "label": "Intercept attempt at predicted closest approach"
+    }
+  ]
+}
