@@ -6,6 +6,7 @@ import { useEffect } from 'react';
 import { usePlacementStore } from './store/placementStore';
 import { useSimulationStore } from './store/simulationStore';
 import { useCameraStore } from './store/cameraStore';
+import { useDashboardStore } from './store/dashboardStore';
 
 /**
  * Full-screen globe layout with floating overlay panels.
@@ -20,14 +21,16 @@ export function App() {
   const placements = usePlacementStore((s) => s.placements);
   const status = useSimulationStore((s) => s.status);
   const resetCamera = useCameraStore((s) => s.reset);
+  const resetDashboard = useDashboardStore((s) => s.reset);
 
   const showSimulationHud = phase === 'simulating' || status !== 'idle';
 
   useEffect(() => {
     if (phase === 'idle' && status === 'idle') {
       resetCamera();
+      resetDashboard();
     }
-  }, [phase, resetCamera, status]);
+  }, [phase, resetCamera, resetDashboard, status]);
 
   return (
     <div style={styles.root}>

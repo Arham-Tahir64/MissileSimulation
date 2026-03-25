@@ -14,6 +14,7 @@ interface Props {
   viewer: Cesium.Viewer | null;
   entities: EntityState[];
   entityDefinitions: EntityDefinition[];
+  showLabels: boolean;
 }
 
 const TRAIL_MAX_POINTS = 80;
@@ -40,7 +41,7 @@ function setPositionValue(
   return new Cesium.ConstantPositionProperty(value);
 }
 
-export function EntityLayer({ viewer, entities, entityDefinitions }: Props) {
+export function EntityLayer({ viewer, entities, entityDefinitions, showLabels }: Props) {
   const mode = useCameraStore((s) => s.mode);
   const trackedEntityId = useCameraStore((s) => s.trackedEntityId);
   const setMode = useCameraStore((s) => s.setMode);
@@ -105,7 +106,10 @@ export function EntityLayer({ viewer, entities, entityDefinitions }: Props) {
           existing.billboard.scale = setConstantValue(existing.billboard.scale, billboardScale);
         }
         if (existing.label) {
-          existing.label.show = setConstantValue(existing.label.show, !hideBaseVisual);
+          existing.label.show = setConstantValue(
+            existing.label.show,
+            showLabels && !hideBaseVisual,
+          );
         }
         if (existing.point) {
           const displayColor = isTerminated
@@ -127,6 +131,7 @@ export function EntityLayer({ viewer, entities, entityDefinitions }: Props) {
             outlineWidth: 2,
             style:        Cesium.LabelStyle.FILL_AND_OUTLINE,
             pixelOffset:  new Cesium.Cartesian2(14, -6),
+            show:         showLabels && !hideBaseVisual,
             disableDepthTestDistance: Number.POSITIVE_INFINITY,
           },
         };
@@ -223,7 +228,7 @@ export function EntityLayer({ viewer, entities, entityDefinitions }: Props) {
         prevStatusRef.current.delete(id);
       }
     }
-  }, [viewer, entities, entityDefinitions, mode, trackedEntityId, followPreset]);
+  }, [viewer, entities, entityDefinitions, mode, trackedEntityId, followPreset, showLabels]);
 
   // Cleanup on unmount
   useEffect(() => {

@@ -8,9 +8,11 @@ import { getEntityDisplayName, isDefenseAssetEntity, isSensorRuntimeEntity } fro
 
 interface Props {
   viewer: Cesium.Viewer | null;
+  showLabels: boolean;
+  showRangeRings: boolean;
 }
 
-export function AssetOverlayLayer({ viewer }: Props) {
+export function AssetOverlayLayer({ viewer, showLabels, showRangeRings }: Props) {
   const trackedEntityId = useCameraStore((s) => s.trackedEntityId);
   const entities = useSimulationStore((s) => s.entities);
 
@@ -43,7 +45,7 @@ export function AssetOverlayLayer({ viewer }: Props) {
       overlayIds.push(entity.id as string);
     };
 
-    if (config.detectionRadiusM) {
+    if (showRangeRings && config.detectionRadiusM) {
       addOverlay(viewer.entities.add({
         id: `asset_overlay_detection_${selectedEntity.id}`,
         position: center,
@@ -59,7 +61,7 @@ export function AssetOverlayLayer({ viewer }: Props) {
       }));
     }
 
-    if (config.engagementRadiusM) {
+    if (showRangeRings && config.engagementRadiusM) {
       addOverlay(viewer.entities.add({
         id: `asset_overlay_engagement_${selectedEntity.id}`,
         position: center,
@@ -103,26 +105,28 @@ export function AssetOverlayLayer({ viewer }: Props) {
       }));
     }
 
-    addOverlay(viewer.entities.add({
-      id: `asset_overlay_label_${selectedEntity.id}`,
-      position: geoToCartesian(selectedEntity.position),
-      label: {
-        text: isSensorRuntimeEntity(selectedEntity)
-          ? `${selectedName} // TRACK_VOLUME`
-          : `${selectedName} // ENGAGEMENT_ZONE`,
-        font: '600 12px monospace',
-        fillColor: Cesium.Color.fromCssColorString(config.cssColor),
-        outlineColor: Cesium.Color.BLACK.withAlpha(0.8),
-        outlineWidth: 3,
-        pixelOffset: new Cesium.Cartesian2(0, -24),
-        disableDepthTestDistance: Number.POSITIVE_INFINITY,
-      },
-    }));
+    if (showLabels) {
+      addOverlay(viewer.entities.add({
+        id: `asset_overlay_label_${selectedEntity.id}`,
+        position: geoToCartesian(selectedEntity.position),
+        label: {
+          text: isSensorRuntimeEntity(selectedEntity)
+            ? `${selectedName} // TRACK_VOLUME`
+            : `${selectedName} // ENGAGEMENT_ZONE`,
+          font: '600 12px monospace',
+          fillColor: Cesium.Color.fromCssColorString(config.cssColor),
+          outlineColor: Cesium.Color.BLACK.withAlpha(0.8),
+          outlineWidth: 3,
+          pixelOffset: new Cesium.Cartesian2(0, -24),
+          disableDepthTestDistance: Number.POSITIVE_INFINITY,
+        },
+      }));
+    }
 
     overlayIdsRef.current = overlayIds;
 
     return clear;
-  }, [entities, trackedEntityId, viewer]);
+  }, [entities, showLabels, showRangeRings, trackedEntityId, viewer]);
 
   return null;
 }
