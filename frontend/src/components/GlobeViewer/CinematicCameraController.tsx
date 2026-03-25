@@ -1,14 +1,15 @@
 import { useEffect, useRef } from 'react';
 import * as Cesium from 'cesium';
 import { useCameraStore } from '../../store/cameraStore';
-import { useScenarioStore } from '../../store/scenarioStore';
 import { useSimulationStore } from '../../store/simulationStore';
 import {
   CameraRigState,
   createChaseRig,
   createInitialCameraRig,
+  createTacticalRig,
   smoothCameraRig,
 } from '../../utils/cameraTracking';
+import { isDefenseAssetEntity, isMovingRuntimeEntity } from '../../utils/entityRuntime';
 
 interface Props {
   viewer: Cesium.Viewer | null;
@@ -21,14 +22,10 @@ export function CinematicCameraController({ viewer }: Props) {
   const isAutoFollowEnabled = useCameraStore((s) => s.isAutoFollowEnabled);
   const setTrackedEntityId = useCameraStore((s) => s.setTrackedEntityId);
   const entities = useSimulationStore((s) => s.entities);
-  const activeScenario = useScenarioStore((s) => s.activeScenario);
 
-  const trackableIds = new Set(
-    (activeScenario?.entities ?? [])
-      .filter((entity) => entity.type !== 'sensor' && entity.trajectory_type !== 'stationary')
-      .map((entity) => entity.id),
+  const activeEntities = entities.filter(
+    (entity) => entity.status === 'active' && isMovingRuntimeEntity(entity),
   );
-  const activeEntities = entities.filter((entity) => entity.status === 'active' && trackableIds.has(entity.id));
   const trackedEntity =
     entities.find((entity) => entity.id === trackedEntityId)
     ?? (isAutoFollowEnabled ? activeEntities[0] : null)
@@ -38,6 +35,7 @@ export function CinematicCameraController({ viewer }: Props) {
   const modeRef = useRef(mode);
   const presetRef = useRef(followPreset);
   const rigRef = useRef<CameraRigState | null>(null);
+  const inspectedAssetIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     trackedEntityRef.current = trackedEntity;
@@ -70,7 +68,7 @@ export function CinematicCameraController({ viewer }: Props) {
       const entity = trackedEntityRef.current;
       const currentMode = modeRef.current;
 
-      if (!entity || currentMode !== 'follow') {
+      if (!entity || currentMode !== 'follow' || !isMovingRuntimeEntity(entity)) {
         rigRef.current = null;
         return;
       }
@@ -105,6 +103,27 @@ export function CinematicCameraController({ viewer }: Props) {
       screenController.enableInputs = true;
     };
   }, [viewer]);
+
+  useEffect(() => {
+    if (!viewer) return;
+    if (mode !== 'tactical' || !trackedEntity || !isDefenseAssetEntity(trackedEntity)) {
+      inspectedAssetIdRef.current = null;
+      return;
+    }
+    if (inspectedAssetIdRef.current === trackedEntity.id) return;
+
+    const rig = createTacticalRig(trackedEntity);
+    inspectedAssetIdRef.current = trackedEntity.id;
+
+    viewer.camera.flyToBoundingSphere(new Cesium.BoundingSphere(rig.target, 1), {
+      offset: new Cesium.HeadingPitchRange(
+        rig.heading,
+        rig.pitch,
+        rig.range,
+      ),
+      duration: 1.1,
+    });
+  }, [mode, trackedEntity, viewer]);
 
   useEffect(() => {
     if (!viewer) return;

@@ -3,6 +3,12 @@ import * as Cesium from 'cesium';
 import { EntityDefinition, EntityState, EntityStatus } from '../../types/entity';
 import { geoToCartesian, entityColor, getMissileIcon } from '../../utils/cesiumHelpers';
 import { useCameraStore } from '../../store/cameraStore';
+import {
+  getEntityDisplayName,
+  isDefenseAssetEntity,
+  isMovingRuntimeEntity,
+  isSensorRuntimeEntity,
+} from '../../utils/entityRuntime';
 
 interface Props {
   viewer: Cesium.Viewer | null;
@@ -51,6 +57,7 @@ export function EntityLayer({ viewer, entities, entityDefinitions }: Props) {
     if (!viewer) return;
 
     const seenIds = new Set<string>();
+    const definitionMap = new Map(entityDefinitions.map((definition) => [definition.id, definition]));
 
     for (const state of entities) {
       seenIds.add(state.id);
@@ -63,11 +70,16 @@ export function EntityLayer({ viewer, entities, entityDefinitions }: Props) {
         state.status === 'intercepted' ||
         state.status === 'destroyed'   ||
         state.status === 'missed';
-      const definition = entityDefinitions.find((candidate) => candidate.id === state.id) ?? null;
-      const isStationary = definition?.trajectory_type === 'stationary';
-      const isSensor   = state.type === 'sensor';
+      const definition = definitionMap.get(state.id) ?? null;
+      const isStationary = !isMovingRuntimeEntity(state, definition);
+      const isSensor = isSensorRuntimeEntity(state);
+      const displayName = getEntityDisplayName(state, definition);
       const prevStatus = prevStatusRef.current.get(state.id);
-      const hideBaseVisual = mode === 'follow' && followPreset === 'chase' && trackedEntityId === state.id;
+      const hideBaseVisual =
+        mode === 'follow'
+        && followPreset === 'chase'
+        && trackedEntityId === state.id
+        && isMovingRuntimeEntity(state, definition);
 
       const existing = entityMapRef.current.get(state.id);
 
@@ -108,7 +120,7 @@ export function EntityLayer({ viewer, entities, entityDefinitions }: Props) {
           name:     state.id,
           position: new Cesium.ConstantPositionProperty(position),
           label: {
-            text:         state.id,
+            text:         displayName,
             font:         '11px monospace',
             fillColor:    Cesium.Color.WHITE,
             outlineColor: Cesium.Color.BLACK,
@@ -165,6 +177,7 @@ export function EntityLayer({ viewer, entities, entityDefinitions }: Props) {
 
       // ── Trail polyline (active non-sensor entities only) ─────────────
       if (!isSensor && isActive) {
+        if (isStationary) continue;
         const history = historyRef.current.get(state.id) ?? [];
         history.push(position);
         if (history.length > TRAIL_MAX_POINTS) history.shift();
@@ -228,21 +241,22 @@ export function EntityLayer({ viewer, entities, entityDefinitions }: Props) {
   useEffect(() => {
     if (!viewer || entities.length === 0) return;
 
-    const entityIds = new Set(
-      entityDefinitions
-        .filter((entity) => entity.type !== 'sensor' && entity.trajectory_type !== 'stationary')
-        .map((entity) => entity.id),
-    );
+    const entityById = new Map(entities.map((entity) => [entity.id, entity]));
 
     const handleSelectedEntityChanged = (selectedEntity: Cesium.Entity | undefined) => {
       const rawId = selectedEntity?.id;
       if (typeof rawId !== 'string') return;
 
       const normalizedId = rawId.startsWith('trail_') ? rawId.slice(6) : rawId;
-      if (!entityIds.has(normalizedId)) return;
+      const selectedRuntime = entityById.get(normalizedId);
+      if (!selectedRuntime) return;
 
-      setFollowPreset('wide');
-      setMode('follow');
+      if (isDefenseAssetEntity(selectedRuntime)) {
+        setMode('tactical');
+      } else {
+        setFollowPreset('wide');
+        setMode('follow');
+      }
       setTrackedEntityId(normalizedId);
       setHudExpanded(true);
     };
@@ -252,7 +266,7 @@ export function EntityLayer({ viewer, entities, entityDefinitions }: Props) {
     return () => {
       viewer.selectedEntityChanged.removeEventListener(handleSelectedEntityChanged);
     };
-  }, [entityDefinitions, setFollowPreset, setHudExpanded, setMode, setTrackedEntityId, viewer]);
+  }, [entities, setFollowPreset, setHudExpanded, setMode, setTrackedEntityId, viewer]);
 
   return null;
 }

@@ -5,6 +5,7 @@ import { ImpactEffectManager } from '../../services/impactEffectManager';
 import { useScenarioStore } from '../../store/scenarioStore';
 import { useSimulationStore } from '../../store/simulationStore';
 import { EntityDefinition, EntityState } from '../../types/entity';
+import { isInterceptionEvent } from '../../types/simulation';
 import { ImpactEvent } from '../../types/impact';
 
 interface Props {
@@ -25,7 +26,7 @@ export function ImpactEffectsLayer({ viewer }: Props) {
   const scenarioId = useSimulationStore((s) => s.scenarioId);
   const simTimeS = useSimulationStore((s) => s.simTimeS);
   const status = useSimulationStore((s) => s.status);
-  const interceptEvents = useSimulationStore((s) => s.events);
+  const runtimeEvents = useSimulationStore((s) => s.events);
   const entities = useSimulationStore((s) => s.entities);
   const activeScenario = useScenarioStore((s) => s.activeScenario);
 
@@ -78,7 +79,8 @@ export function ImpactEffectsLayer({ viewer }: Props) {
 
     const nowMs = performance.now();
 
-    for (const event of interceptEvents) {
+    for (const event of runtimeEvents) {
+      if (!isInterceptionEvent(event)) continue;
       if (event.sim_time_s - simTimeS > 0.001) continue;
 
       const preset = getImpactPreset(event.outcome === 'success' ? 'heavy_intercept' : 'small_intercept');
@@ -108,7 +110,7 @@ export function ImpactEffectsLayer({ viewer }: Props) {
       manager.emit(impact, nowMs);
       processedKeysRef.current.add(dedupeKey);
     }
-  }, [interceptEvents, simTimeS]);
+  }, [runtimeEvents, simTimeS]);
 
   useEffect(() => {
     const manager = managerRef.current;

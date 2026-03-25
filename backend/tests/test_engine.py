@@ -46,6 +46,51 @@ def _make_scenario(duration_s: float = 60.0, tick_rate_hz: float = 10.0) -> Scen
     )
 
 
+def _make_defense_scenario(duration_s: float = 120.0, tick_rate_hz: float = 10.0) -> ScenarioDefinition:
+    return ScenarioDefinition(
+        metadata=ScenarioMetadata(
+            id="defense_test",
+            name="Defense Test",
+            description="Runtime detection and auto-engagement test",
+            duration_s=duration_s,
+            tick_rate_hz=tick_rate_hz,
+            threat_count=1,
+            interceptor_count=1,
+            tags=[],
+        ),
+        entities=[
+            EntityDefinition(
+                id="T-1",
+                type=EntityType.BALLISTIC_THREAT,
+                label="Threat 1",
+                designator="T-1",
+                trajectory_type=TrajectoryType.BALLISTIC,
+                origin=GeoPosition(lat=35.4, lon=51.0, alt=100),
+                target=GeoPosition(lat=33.2, lon=48.2, alt=0),
+                launch_time_s=0.0,
+            ),
+            EntityDefinition(
+                id="EWR-1",
+                type=EntityType.SENSOR,
+                label="Early Warning Radar",
+                designator="EWR-1",
+                trajectory_type=TrajectoryType.STATIONARY,
+                origin=GeoPosition(lat=34.4, lon=49.0, alt=0),
+                launch_time_s=0.0,
+            ),
+            EntityDefinition(
+                id="ARW-1",
+                type=EntityType.INTERCEPTOR,
+                label="Arrow Battery",
+                designator="ARW-1",
+                trajectory_type=TrajectoryType.STATIONARY,
+                origin=GeoPosition(lat=34.3, lon=49.1, alt=0),
+                launch_time_s=0.0,
+            ),
+        ],
+    )
+
+
 @pytest.mark.asyncio
 async def test_entities_start_inactive():
     """All entities should be INACTIVE before their launch_time_s."""
@@ -156,3 +201,46 @@ async def test_run_completes_short_scenario():
     # Last message should be completed status
     final = messages[-1]
     assert final["status"] == "completed"
+
+
+@pytest.mark.asyncio
+async def test_defense_assets_detect_engage_and_intercept():
+    async def push(_: str):
+        pass
+
+    scenario = _make_defense_scenario()
+    engine = SimulationEngine("sess-defense-1", scenario, push)
+
+    for _ in range(700):
+        engine._tick()
+
+    state = json.loads(engine._serialize_state("running"))
+    event_types = {event["type"] for event in state["events"]}
+
+    assert "sensor_track" in event_types
+    assert "engagement_order" in event_types
+    assert "event_intercept" in event_types
+    assert any(entity["id"].startswith("ARW-1-SHOT-") for entity in state["entities"])
+    assert any(
+        entity["id"] == "ARW-1" and entity["asset_status"] in ("cooldown", "engaging", "idle")
+        for entity in state["entities"]
+    )
+
+
+@pytest.mark.asyncio
+async def test_seek_rebuilds_defense_runtime_state_and_events():
+    async def push(_: str):
+        pass
+
+    scenario = _make_defense_scenario()
+    engine = SimulationEngine("sess-defense-2", scenario, push)
+
+    state = json.loads(engine.seek(35.0))
+    entities_by_id = {entity["id"]: entity for entity in state["entities"]}
+    event_types = {event["type"] for event in state["events"]}
+
+    assert state["sim_time_s"] >= 35.0 - 0.11
+    assert "EWR-1" in entities_by_id
+    assert "ARW-1" in entities_by_id
+    assert "sensor_track" in event_types
+    assert "engagement_order" in event_types

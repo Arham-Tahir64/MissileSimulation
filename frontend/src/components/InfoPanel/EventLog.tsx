@@ -1,4 +1,5 @@
 import { useSimulationStore } from '../../store/simulationStore';
+import { formatRuntimeEventLabel, isInterceptionEvent } from '../../types/simulation';
 import { formatSimTime } from '../../utils/timeUtils';
 
 export function EventLog() {
@@ -16,13 +17,29 @@ export function EventLog() {
             <span style={styles.time}>{formatSimTime(ev.sim_time_s)}</span>
             <span style={{
               ...styles.outcome,
-              color: ev.outcome === 'success' ? '#68d391' : '#fc8181',
+              color:
+                ev.type === 'sensor_track'
+                  ? '#f6e27a'
+                  : ev.type === 'engagement_order'
+                    ? '#67d4ff'
+                    : ev.outcome === 'success'
+                      ? '#68d391'
+                      : '#fc8181',
             }}>
-              {ev.outcome === 'success' ? '✓' : '✗'}
+              {ev.type === 'sensor_track'
+                ? '◉'
+                : ev.type === 'engagement_order'
+                  ? '↗'
+                  : ev.outcome === 'success'
+                    ? '✓'
+                    : '✗'}
             </span>
-            <span style={styles.label}>
-              {ev.interceptor_id} → {ev.threat_id}
-            </span>
+            <span style={styles.label}>{formatRuntimeEventLabel(ev)}</span>
+            {isInterceptionEvent(ev) && (
+              <span style={styles.positionHint}>
+                {ev.position.lat.toFixed(2)}, {ev.position.lon.toFixed(2)}
+              </span>
+            )}
           </div>
         ))}
       </div>
@@ -55,4 +72,5 @@ const styles: Record<string, React.CSSProperties> = {
   time: { color: '#718096', fontFamily: 'monospace', fontSize: 11, minWidth: 40 },
   outcome: { fontSize: 12, minWidth: 14 },
   label: { color: '#a0aec0', fontSize: 11 },
+  positionHint: { color: '#5e7380', fontSize: 10, fontFamily: 'monospace' },
 };

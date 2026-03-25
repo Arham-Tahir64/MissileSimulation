@@ -7,6 +7,7 @@ export interface GeoPosition {
 export type EntityType = 'ballistic_threat' | 'cruise_threat' | 'interceptor' | 'sensor';
 export type EntityStatus = 'inactive' | 'active' | 'intercepted' | 'missed' | 'destroyed';
 export type TrajectoryType = 'ballistic' | 'cruise' | 'stationary';
+export type AssetStatus = 'idle' | 'tracking' | 'engaging' | 'cooldown';
 
 /** Static entity configuration as defined in a scenario JSON file. */
 export interface EntityDefinition {
@@ -32,4 +33,11 @@ export interface EntityState {
   heading_deg: number;
   pitch_deg: number;
   sim_time_s: number;
+  trajectory_type?: TrajectoryType | null;
+  label?: string | null;
+  designator?: string | null;
+  asset_status?: AssetStatus | null;
+  current_target_id?: string | null;
+  detected_threat_ids?: string[];
+  cooldown_remaining_s?: number | null;
 }

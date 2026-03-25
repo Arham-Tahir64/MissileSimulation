@@ -19,27 +19,13 @@ export function handleServerMessage(msg: ServerMessage): void {
         setPlaying(true);
       }
       // Any new interception events bundled in the state frame
-      msg.events.forEach((ev) =>
-        addEvent({
-          event_id: ev.event_id,
-          sim_time_s: ev.sim_time_s,
-          threat_id: ev.threat_id,
-          interceptor_id: ev.interceptor_id,
-          position: ev.position,
-          outcome: ev.outcome,
-        })
-      );
+      msg.events.forEach((ev) => addEvent(ev));
       break;
 
+    case 'sensor_track':
+    case 'engagement_order':
     case 'event_intercept':
-      addEvent({
-        event_id: msg.event_id,
-        sim_time_s: msg.sim_time_s,
-        threat_id: msg.threat_id,
-        interceptor_id: msg.interceptor_id,
-        position: msg.position,
-        outcome: msg.outcome,
-      });
+      addEvent(msg);
       break;
 
     case 'sim_status':

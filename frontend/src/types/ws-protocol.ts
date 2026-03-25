@@ -1,5 +1,11 @@
-import { EntityState, GeoPosition } from './entity';
-import { SimulationStatus } from './simulation';
+import { EntityState } from './entity';
+import {
+  EngagementOrderEvent,
+  InterceptionEvent,
+  RuntimeEvent,
+  SensorTrackEvent,
+  SimulationStatus,
+} from './simulation';
 
 // ──────────────────────────────────────────────
 // Server → Client messages
@@ -13,18 +19,12 @@ export interface WsSimState {
   wall_time_ms: number;
   status: SimulationStatus;
   entities: EntityState[];
-  events: WsEventIntercept[];
+  events: RuntimeEvent[];
 }
 
-export interface WsEventIntercept {
-  type: 'event_intercept';
-  event_id: string;
-  sim_time_s: number;
-  threat_id: string;
-  interceptor_id: string;
-  position: GeoPosition;
-  outcome: 'success' | 'miss';
-}
+export type WsEventIntercept = InterceptionEvent;
+export type WsEventSensorTrack = SensorTrackEvent;
+export type WsEventEngagementOrder = EngagementOrderEvent;
 
 export interface WsSimStatus {
   type: 'sim_status';
@@ -41,7 +41,13 @@ export interface WsError {
   fatal: boolean;
 }
 
-export type ServerMessage = WsSimState | WsEventIntercept | WsSimStatus | WsError;
+export type ServerMessage =
+  | WsSimState
+  | WsEventIntercept
+  | WsEventSensorTrack
+  | WsEventEngagementOrder
+  | WsSimStatus
+  | WsError;
 
 // ──────────────────────────────────────────────
 // Client → Server commands

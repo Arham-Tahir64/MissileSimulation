@@ -8,6 +8,7 @@ import { PlacementMarkerLayer } from './PlacementMarkerLayer';
 import { CinematicCameraController } from './CinematicCameraController';
 import { CinematicMissileLayer } from './CinematicMissileLayer';
 import { ImpactEffectsLayer } from './ImpactEffectsLayer';
+import { AssetOverlayLayer } from './AssetOverlayLayer';
 import { useSimulationStore } from '../../store/simulationStore';
 import { useScenarioStore } from '../../store/scenarioStore';
 
@@ -30,6 +31,7 @@ export function GlobeViewer() {
       <EntityLayer viewer={viewer} entities={entities} entityDefinitions={activeScenario?.entities ?? []} />
       <CinematicMissileLayer viewer={viewer} />
       <ImpactEffectsLayer viewer={viewer} />
+      <AssetOverlayLayer viewer={viewer} />
       {activeScenario && (
         <TrajectoryLayer
           viewer={viewer}

@@ -3,6 +3,7 @@ import * as Cesium from 'cesium';
 import { useCameraStore } from '../../store/cameraStore';
 import { useSimulationStore } from '../../store/simulationStore';
 import { geoToCartesian } from '../../utils/cesiumHelpers';
+import { isMovingRuntimeEntity } from '../../utils/entityRuntime';
 
 interface Props {
   viewer: Cesium.Viewer | null;
@@ -173,6 +174,7 @@ export function CinematicMissileLayer({ viewer }: Props) {
       const isVisible = modeRef.current === 'follow'
         && presetRef.current === 'chase'
         && tracked
+        && isMovingRuntimeEntity(tracked)
         && tracked.status === 'active';
 
       if (!missileRef.current || !plumeRef.current) return;

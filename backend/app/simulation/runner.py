@@ -65,7 +65,10 @@ class SimulationRunner:
     async def seek(self, session_id: str, target_time_s: float) -> None:
         engine = self._engines.get(session_id)
         if engine:
-            engine.seek(target_time_s)
+            state_json = engine.seek(target_time_s)
+            callback = self._push_callbacks.get(session_id)
+            if callback is not None:
+                await callback(state_json)
 
     async def set_speed(self, session_id: str, speed: float) -> None:
         engine = self._engines.get(session_id)

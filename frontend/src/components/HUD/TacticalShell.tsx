@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { getDefenseAssetConfigByDesignator } from '../../config/defenseAssets';
 import { useCameraStore } from '../../store/cameraStore';
 import { usePlayback } from '../Playback/usePlayback';
 import { usePlaybackStore } from '../../store/playbackStore';
@@ -8,6 +9,8 @@ import { useSimulationStore } from '../../store/simulationStore';
 import { getViewer, resetViewerToDefaultView } from '../../services/viewerRegistry';
 import { wsClient } from '../../services/wsClient';
 import { computeFlightTimeS, flyToScenario, haversineDistanceM } from '../../utils/cesiumHelpers';
+import { getEntityDisplayLabel, getEntityDisplayName, isDefenseAssetEntity, isMovingRuntimeEntity, isSensorRuntimeEntity } from '../../utils/entityRuntime';
+import { formatRuntimeEventLabel, isEngagementOrderEvent, isSensorTrackEvent } from '../../types/simulation';
 import { formatSimTime, timeToFraction } from '../../utils/timeUtils';
 
 const SPEED_OPTIONS = [0.5, 1, 2, 4, 8];
@@ -32,38 +35,56 @@ export function TacticalShell() {
   const { toggle, seek, changeSpeed } = usePlayback();
   const placementReset = usePlacementStore((s) => s.reset);
 
-  const trackableDefinitions = (activeScenario?.entities ?? []).filter(
-    (definition) => definition.type !== 'sensor' && definition.trajectory_type !== 'stationary',
+  const activeScenarioDefinitionMap = new Map(
+    (activeScenario?.entities ?? []).map((entity) => [entity.id, entity]),
   );
-  const activeEntities = entities.filter((entity) =>
-    entity.status === 'active' && trackableDefinitions.some((definition) => definition.id === entity.id),
-  );
-  const fleetEntries = trackableDefinitions.map((definition) => ({
-    definition,
-    state: entities.find((entity) => entity.id === definition.id) ?? null,
+  const flightEntities = entities.filter((entity) => isMovingRuntimeEntity(entity, activeScenarioDefinitionMap.get(entity.id)));
+  const defenseAssets = entities.filter((entity) => isDefenseAssetEntity(entity, activeScenarioDefinitionMap.get(entity.id)));
+  const activeFlightEntities = flightEntities.filter((entity) => entity.status === 'active');
+  const activeEntities = activeFlightEntities;
+  const fleetEntries = flightEntities.map((state) => ({
+    definition: activeScenarioDefinitionMap.get(state.id) ?? null,
+    state,
   }));
-  const trackedEntity =
+  const radarAssets = defenseAssets.filter((entity) => isSensorRuntimeEntity(entity));
+  const batteryAssets = defenseAssets.filter((entity) => !isSensorRuntimeEntity(entity));
+  const selectedEntity =
     entities.find((entity) => entity.id === trackedEntityId)
-    ?? activeEntities[0]
+    ?? activeFlightEntities[0]
     ?? fleetEntries[0]?.state
-    ?? entities[0]
     ?? null;
-  const trackedDefinition = activeScenario?.entities.find(
-    (entity) => entity.id === (trackedEntityId ?? trackedEntity?.id),
-  )
-    ?? activeScenario?.entities[0]
-    ?? null;
-  const terminalTarget = trackedDefinition?.target
-    ?? trackedDefinition?.waypoints?.[trackedDefinition.waypoints.length - 1]
+  const selectedDefinition = selectedEntity
+    ? activeScenarioDefinitionMap.get(selectedEntity.id) ?? null
+    : null;
+  const isSelectedMovingEntity = selectedEntity
+    ? isMovingRuntimeEntity(selectedEntity, selectedDefinition)
+    : false;
+  const selectedAssetConfig = selectedEntity && !isSelectedMovingEntity
+    ? getDefenseAssetConfigByDesignator(selectedEntity.designator)
+    : null;
+  const selectedEntityName = selectedEntity ? getEntityDisplayName(selectedEntity, selectedDefinition) : 'NO_TRACK';
+  const selectedEntityLabel = selectedEntity ? getEntityDisplayLabel(selectedEntity, selectedDefinition) : 'standby';
+  const terminalTarget = selectedDefinition?.target
+    ?? selectedDefinition?.waypoints?.[selectedDefinition.waypoints.length - 1]
     ?? null;
   const trackFraction = timeToFraction(simTimeS, durationS);
-  const altitudeFt = trackedEntity ? trackedEntity.position.alt * 3.28084 : 0;
-  const mach = trackedEntity ? trackedEntity.velocity_ms / 343 : 0;
-  const etaS = trackedEntity && trackedDefinition
-    ? Math.max(0, trackedDefinition.launch_time_s + computeFlightTimeS(trackedDefinition) - simTimeS)
+  const altitudeFt = selectedEntity ? selectedEntity.position.alt * 3.28084 : 0;
+  const mach = selectedEntity ? selectedEntity.velocity_ms / 343 : 0;
+  const etaS = selectedEntity && selectedDefinition && isSelectedMovingEntity
+    ? Math.max(0, selectedDefinition.launch_time_s + computeFlightTimeS(selectedDefinition) - simTimeS)
     : 0;
-  const distanceToTargetKm = trackedEntity && terminalTarget
-    ? haversineDistanceM(trackedEntity.position, terminalTarget) / 1_000
+  const primaryLinkedThreatId = selectedEntity
+    ? selectedEntity.current_target_id ?? selectedEntity.detected_threat_ids?.[0] ?? null
+    : null;
+  const primaryLinkedThreat = primaryLinkedThreatId
+    ? entities.find((entity) => entity.id === primaryLinkedThreatId) ?? null
+    : null;
+  const distanceToTargetKm = selectedEntity && terminalTarget && isSelectedMovingEntity
+    ? haversineDistanceM(selectedEntity.position, terminalTarget) / 1_000
+    : selectedEntity && primaryLinkedThreat
+      ? haversineDistanceM(selectedEntity.position, primaryLinkedThreat.position) / 1_000
+      : selectedAssetConfig
+        ? ((selectedAssetConfig.detectionRadiusM ?? selectedAssetConfig.engagementRadiusM ?? 0) / 1_000)
     : 0;
   const totalMissiles = fleetEntries.length;
   const scheduledMissiles = fleetEntries.filter((entry) => entry.state?.status === 'inactive').length;
@@ -71,26 +92,45 @@ export function TacticalShell() {
     const statusValue = entry.state?.status;
     return statusValue === 'missed' || statusValue === 'destroyed' || statusValue === 'intercepted';
   }).length;
-  const selectedFleetId = trackedEntityId ?? trackedDefinition?.id ?? trackedEntity?.id ?? null;
+  const selectedFleetId = isSelectedMovingEntity ? selectedEntity?.id ?? null : null;
   const selectedFleetIndex = selectedFleetId
-    ? fleetEntries.findIndex((entry) => entry.definition.id === selectedFleetId)
+    ? fleetEntries.findIndex((entry) => entry.state.id === selectedFleetId)
     : -1;
   const showResetToGlobe = status === 'completed';
-  const alertText = trackedEntity
-    ? trackedEntity.status === 'active'
+  const latestEntityEvent = selectedEntity
+    ? [...events]
+      .reverse()
+      .find((event) => {
+        if (isSelectedMovingEntity) {
+          if (isSensorTrackEvent(event)) return event.threat_id === selectedEntity.id;
+          if (isEngagementOrderEvent(event)) return event.interceptor_id === selectedEntity.id || event.threat_id === selectedEntity.id;
+          return event.interceptor_id === selectedEntity.id || event.threat_id === selectedEntity.id;
+        }
+        if (isSensorRuntimeEntity(selectedEntity)) {
+          return isSensorTrackEvent(event) && event.sensor_id === selectedEntity.id;
+        }
+        return isEngagementOrderEvent(event) && event.battery_id === selectedEntity.id;
+      })
+    : null;
+  const alertText = selectedEntity
+    ? isSelectedMovingEntity
+      ? selectedEntity.status === 'active'
       ? 'FOLLOW_CAMERA_LOCKED. TRAJECTORY_STABLE. TERMINAL_TRACK_IN_VIEW.'
-      : trackedEntity.status === 'intercepted'
+      : selectedEntity.status === 'intercepted'
         ? 'TRACK_TERMINATED. INTERCEPT_CONFIRMED. DEBRIS_FIELD_PENDING.'
-        : trackedEntity.status === 'missed'
+        : selectedEntity.status === 'missed'
           ? 'TRACK_COMPLETE. IMPACT_WINDOW_REACHED. REVIEW PATHING.'
           : 'TRACK_PENDING. WAITING_FOR_ACTIVE_FLIGHT_SEGMENT.'
+      : isSensorRuntimeEntity(selectedEntity)
+        ? `RADAR_LOCK_VOLUME_${(selectedEntity.asset_status ?? 'idle').toUpperCase()}. TRACKED_THREATS_${selectedEntity.detected_threat_ids?.length ?? 0}.`
+        : `BATTERY_${(selectedEntity.asset_status ?? 'idle').toUpperCase()}. TARGET_${selectedEntity.current_target_id ?? 'NONE'}.`
     : 'NO_ACTIVE_TRACK. SELECT OR LAUNCH A MISSILE TO ENTER FOLLOW MODE.';
 
   useEffect(() => {
-    if (!trackedEntityId && trackedEntity) {
-      setTrackedEntityId(trackedEntity.id);
+    if (!trackedEntityId && activeFlightEntities[0]) {
+      setTrackedEntityId(activeFlightEntities[0].id);
     }
-  }, [trackedEntity, trackedEntityId, setTrackedEntityId]);
+  }, [activeFlightEntities, trackedEntityId, setTrackedEntityId]);
 
   const handleGlobeView = () => {
     setMode('tactical');
@@ -108,11 +148,17 @@ export function TacticalShell() {
     setHudExpanded(true);
   };
 
+  const selectAsset = (assetId: string) => {
+    setMode('tactical');
+    setTrackedEntityId(assetId);
+    setHudExpanded(true);
+  };
+
   const cycleTrackedMissile = (direction: -1 | 1) => {
     if (fleetEntries.length === 0) return;
     const currentIndex = selectedFleetIndex >= 0 ? selectedFleetIndex : 0;
     const nextIndex = (currentIndex + direction + fleetEntries.length) % fleetEntries.length;
-    selectTrackedMissile(fleetEntries[nextIndex].definition.id);
+    selectTrackedMissile(fleetEntries[nextIndex].state.id);
   };
 
   const handleAbort = () => {
@@ -141,7 +187,7 @@ export function TacticalShell() {
         <div style={styles.topMeta}>
           <span style={styles.modeChip}>SYSTEM_LOCKED</span>
           <span style={styles.topLabel}>
-            {trackedEntity?.id ?? 'NO_TRACK'} // {status.toUpperCase()} // {connectionStatus}
+            {selectedEntityName} // {status.toUpperCase()} // {connectionStatus}
           </span>
         </div>
       </div>
@@ -150,7 +196,7 @@ export function TacticalShell() {
         <div style={styles.railHeader}>
           <div style={styles.railTitle}>TACTICAL_CMD</div>
           <div style={styles.railSubtitle}>
-            {activeScenario?.metadata.name ?? 'CUSTOM_TRACK'} // {trackedDefinition?.label ?? trackedEntity?.type ?? 'standby'}
+            {activeScenario?.metadata.name ?? 'CUSTOM_TRACK'} // {selectedEntityLabel}
           </div>
         </div>
 
@@ -223,12 +269,12 @@ export function TacticalShell() {
             </div>
             <div style={styles.fleetList}>
               {fleetEntries.map(({ definition, state }) => {
-                const selected = selectedFleetId === definition.id;
-                const liveStatus = state?.status ?? 'inactive';
+                const selected = selectedFleetId === state.id;
+                const liveStatus = state.status;
                 return (
                   <button
-                    key={definition.id}
-                    onClick={() => selectTrackedMissile(definition.id)}
+                    key={state.id}
+                    onClick={() => selectTrackedMissile(state.id)}
                     style={{
                       ...styles.fleetRow,
                       borderColor: selected ? 'rgba(0,229,255,0.4)' : 'rgba(255,255,255,0.08)',
@@ -236,11 +282,11 @@ export function TacticalShell() {
                     }}
                   >
                     <div style={styles.fleetRowTop}>
-                      <span style={styles.fleetName}>{definition.id}</span>
+                      <span style={styles.fleetName}>{state ? getEntityDisplayName(state, definition) : definition?.designator ?? 'TRACK'}</span>
                       <span style={styles.fleetStatus}>{liveStatus}</span>
                     </div>
                     <div style={styles.fleetMeta}>
-                      {definition.label} // T+{Math.round(definition.launch_time_s)}s
+                      {(state ? getEntityDisplayLabel(state, definition) : definition?.label) ?? 'Unknown Track'} // T+{Math.round(definition?.launch_time_s ?? 0)}s
                     </div>
                   </button>
                 );
@@ -249,19 +295,80 @@ export function TacticalShell() {
           </div>
         )}
 
+        {defenseAssets.length > 0 && (
+          <div style={styles.assetPanel}>
+            <div style={styles.panelTitle}>DEFENSE_ASSETS</div>
+            {radarAssets.length > 0 && (
+              <div style={styles.assetGroup}>
+                <div style={styles.assetGroupLabel}>RADARS</div>
+                {radarAssets.map((asset) => {
+                  const selected = selectedEntity?.id === asset.id;
+                  return (
+                    <button
+                      key={asset.id}
+                      onClick={() => selectAsset(asset.id)}
+                      style={{
+                        ...styles.assetRow,
+                        borderColor: selected ? 'rgba(255,215,153,0.38)' : 'rgba(255,255,255,0.08)',
+                        background: selected ? 'rgba(255,215,153,0.08)' : 'rgba(10,16,22,0.54)',
+                      }}
+                    >
+                      <div style={styles.assetRowTop}>
+                        <span style={styles.assetName}>{getEntityDisplayName(asset)}</span>
+                        <span style={styles.assetStatus}>{asset.asset_status ?? 'idle'}</span>
+                      </div>
+                      <div style={styles.assetMeta}>
+                        {getEntityDisplayLabel(asset)} // {(asset.detected_threat_ids?.length ?? 0)} TRACKS
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            {batteryAssets.length > 0 && (
+              <div style={styles.assetGroup}>
+                <div style={styles.assetGroupLabel}>BATTERIES</div>
+                {batteryAssets.map((asset) => {
+                  const selected = selectedEntity?.id === asset.id;
+                  return (
+                    <button
+                      key={asset.id}
+                      onClick={() => selectAsset(asset.id)}
+                      style={{
+                        ...styles.assetRow,
+                        borderColor: selected ? 'rgba(103,212,255,0.4)' : 'rgba(255,255,255,0.08)',
+                        background: selected ? 'rgba(103,212,255,0.08)' : 'rgba(10,16,22,0.54)',
+                      }}
+                    >
+                      <div style={styles.assetRowTop}>
+                        <span style={styles.assetName}>{getEntityDisplayName(asset)}</span>
+                        <span style={styles.assetStatus}>{asset.asset_status ?? 'idle'}</span>
+                      </div>
+                      <div style={styles.assetMeta}>
+                        {getEntityDisplayLabel(asset)} // {asset.current_target_id ?? 'READY'}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
         <button onClick={handleAbort} style={styles.engageButton}>
           {showResetToGlobe ? 'RESET_TO_GLOBE' : 'EXIT_TRACK'}
         </button>
       </div>
 
-      {(isHudExpanded || mode === 'follow') && (
+      {selectedEntity && isSelectedMovingEntity && (isHudExpanded || mode === 'follow') && (
         <div style={styles.centerHud}>
           <div style={styles.reticle}>
             <span style={styles.reticleDot} />
           </div>
           <div style={styles.trackLabel}>
             <span style={styles.trackEyebrow}>ACTIVE_TRACK</span>
-            <span style={styles.trackValue}>{trackedEntity?.id ?? 'NO_TARGET'}</span>
+            <span style={styles.trackValue}>{selectedEntityName}</span>
           </div>
         </div>
       )}
@@ -276,38 +383,80 @@ export function TacticalShell() {
         </div>
       )}
 
-      {isHudExpanded && (
+      {isHudExpanded && selectedEntity && (
         <div style={styles.rightStack}>
-          <MetricPanel
-            title="ALTITUDE"
-            value={`${altitudeFt.toLocaleString(undefined, { maximumFractionDigits: 0 })}`}
-            unit="FT"
-            tone="cyan"
-            progress={trackFraction}
-          />
-          <MetricPanel
-            title="VELOCITY"
-            value={`${mach.toFixed(1)}`}
-            unit="MACH"
-            tone="amber"
-            progress={Math.min(1, mach / 8)}
-          />
-          <MetricPanel
-            title="TIME_TO_IMPACT"
-            value={formatSimTime(etaS)}
-            unit=""
-            tone="amber"
-            progress={durationS > 0 ? 1 - etaS / durationS : 0}
-          />
+          {isSelectedMovingEntity ? (
+            <>
+              <MetricPanel
+                title="ALTITUDE"
+                value={`${altitudeFt.toLocaleString(undefined, { maximumFractionDigits: 0 })}`}
+                unit="FT"
+                tone="cyan"
+                progress={trackFraction}
+              />
+              <MetricPanel
+                title="VELOCITY"
+                value={`${mach.toFixed(1)}`}
+                unit="MACH"
+                tone="amber"
+                progress={Math.min(1, mach / 8)}
+              />
+              <MetricPanel
+                title="TIME_TO_IMPACT"
+                value={formatSimTime(etaS)}
+                unit=""
+                tone="amber"
+                progress={durationS > 0 ? 1 - etaS / durationS : 0}
+              />
+            </>
+          ) : (
+            <>
+              <MetricPanel
+                title={isSensorRuntimeEntity(selectedEntity) ? 'DETECTION_RANGE' : 'COVERAGE_RANGE'}
+                value={`${(((selectedAssetConfig?.detectionRadiusM ?? selectedAssetConfig?.engagementRadiusM) ?? 0) / 1_000).toFixed(0)}`}
+                unit="KM"
+                tone="cyan"
+                progress={1}
+              />
+              <MetricPanel
+                title={isSensorRuntimeEntity(selectedEntity) ? 'TRACKED_THREATS' : 'CURRENT_TARGET'}
+                value={isSensorRuntimeEntity(selectedEntity)
+                  ? `${selectedEntity.detected_threat_ids?.length ?? 0}`
+                  : selectedEntity.current_target_id ?? 'READY'}
+                unit={isSensorRuntimeEntity(selectedEntity) ? 'LOCKS' : ''}
+                tone="amber"
+                progress={isSensorRuntimeEntity(selectedEntity)
+                  ? Math.min(1, (selectedEntity.detected_threat_ids?.length ?? 0) / Math.max(1, selectedAssetConfig?.maxTracks ?? 1))
+                  : selectedEntity.asset_status === 'engaging' ? 1 : 0.35}
+              />
+              <MetricPanel
+                title={isSensorRuntimeEntity(selectedEntity) ? 'TRACK_LATENCY' : 'COOLDOWN'}
+                value={isSensorRuntimeEntity(selectedEntity)
+                  ? `${(selectedAssetConfig?.trackingLatencyS ?? 0).toFixed(1)}`
+                  : `${Math.max(0, selectedEntity.cooldown_remaining_s ?? 0).toFixed(1)}`}
+                unit="SEC"
+                tone="amber"
+                progress={isSensorRuntimeEntity(selectedEntity)
+                  ? Math.min(1, (selectedAssetConfig?.trackingLatencyS ?? 0) / 6)
+                  : Math.min(1, Math.max(0, selectedEntity.cooldown_remaining_s ?? 0) / Math.max(1, selectedAssetConfig?.cooldownS ?? 1))}
+              />
+            </>
+          )}
           <div style={{ ...styles.panel, ...styles.alertPanel }}>
             <div style={styles.panelTitle}>CRITICAL_ALERT</div>
             <div style={styles.alertBody}>{alertText}</div>
           </div>
+          {latestEntityEvent && (
+            <div style={styles.panel}>
+              <div style={styles.panelTitle}>LATEST_EVENT</div>
+              <div style={styles.alertBody}>{formatRuntimeEventLabel(latestEntityEvent)}</div>
+            </div>
+          )}
           <RadarInset
-            trackedLat={trackedEntity?.position.lat ?? 0}
-            trackedLon={trackedEntity?.position.lon ?? 0}
-            targetLat={terminalTarget?.lat ?? null}
-            targetLon={terminalTarget?.lon ?? null}
+            trackedLat={selectedEntity.position.lat}
+            trackedLon={selectedEntity.position.lon}
+            targetLat={(isSelectedMovingEntity ? terminalTarget : primaryLinkedThreat?.position)?.lat ?? null}
+            targetLon={(isSelectedMovingEntity ? terminalTarget : primaryLinkedThreat?.position)?.lon ?? null}
           />
         </div>
       )}
@@ -316,8 +465,8 @@ export function TacticalShell() {
         <div style={styles.bottomMetric}>
           <span style={styles.bottomLabel}>LAT/LONG</span>
           <span style={styles.bottomValue}>
-            {trackedEntity
-              ? `${Math.abs(trackedEntity.position.lat).toFixed(4)}${trackedEntity.position.lat >= 0 ? 'N' : 'S'} / ${Math.abs(trackedEntity.position.lon).toFixed(4)}${trackedEntity.position.lon >= 0 ? 'E' : 'W'}`
+            {selectedEntity
+              ? `${Math.abs(selectedEntity.position.lat).toFixed(4)}${selectedEntity.position.lat >= 0 ? 'N' : 'S'} / ${Math.abs(selectedEntity.position.lon).toFixed(4)}${selectedEntity.position.lon >= 0 ? 'E' : 'W'}`
               : 'NO_DATA'}
           </span>
         </div>
@@ -328,7 +477,9 @@ export function TacticalShell() {
         <div style={styles.bottomMetric}>
           <span style={styles.bottomLabel}>ATTITUDE</span>
           <span style={styles.bottomValue}>
-            HDG {trackedEntity?.heading_deg.toFixed(0) ?? '0'} / PIT {trackedEntity?.pitch_deg.toFixed(0) ?? '0'}
+            {isSelectedMovingEntity
+              ? `HDG ${selectedEntity?.heading_deg.toFixed(0) ?? '0'} / PIT ${selectedEntity?.pitch_deg.toFixed(0) ?? '0'}`
+              : `STATE ${(selectedEntity?.asset_status ?? 'idle').toUpperCase()}`}
           </span>
         </div>
         <div style={styles.bottomMetricWide}>
@@ -361,7 +512,7 @@ export function TacticalShell() {
           <div style={styles.eventsRow}>
             {[...events].slice(-3).reverse().map((event) => (
               <span key={event.event_id} style={styles.eventChip}>
-                {formatSimTime(event.sim_time_s)} // {event.interceptor_id} → {event.threat_id}
+                {formatSimTime(event.sim_time_s)} // {formatRuntimeEventLabel(event)}
               </span>
             ))}
             {events.length === 0 && (
@@ -609,6 +760,57 @@ const styles: Record<string, React.CSSProperties> = {
     flex: 1,
     minHeight: 0,
     overflow: 'hidden',
+  },
+  assetPanel: {
+    ...glassPanel,
+    padding: '12px 12px 10px',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 10,
+    maxHeight: 250,
+    overflowY: 'auto',
+  },
+  assetGroup: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 8,
+  },
+  assetGroupLabel: {
+    color: '#8ba0aa',
+    fontSize: 10,
+    letterSpacing: '0.18em',
+    textTransform: 'uppercase',
+  },
+  assetRow: {
+    border: '1px solid rgba(255,255,255,0.08)',
+    padding: '10px 10px 9px',
+    textAlign: 'left',
+    cursor: 'pointer',
+  },
+  assetRowTop: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    gap: 10,
+    alignItems: 'center',
+  },
+  assetName: {
+    color: '#dff8ff',
+    fontSize: 12,
+    fontWeight: 700,
+    letterSpacing: '0.08em',
+  },
+  assetStatus: {
+    color: '#ffd799',
+    fontSize: 10,
+    textTransform: 'uppercase',
+    letterSpacing: '0.14em',
+  },
+  assetMeta: {
+    color: '#70838d',
+    fontSize: 10,
+    marginTop: 6,
+    fontFamily: 'monospace',
+    textTransform: 'uppercase',
   },
   fleetSummary: {
     display: 'grid',

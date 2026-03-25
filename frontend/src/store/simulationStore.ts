@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { EntityState } from '../types/entity';
-import { InterceptionEvent, SimulationStatus } from '../types/simulation';
+import { RuntimeEvent, SimulationStatus, isEngagementOrderEvent, isSensorTrackEvent } from '../types/simulation';
 
 export type ConnectionStatus = 'disconnected' | 'connected' | 'reconnecting' | 'error';
 
@@ -11,10 +11,10 @@ interface SimulationStore {
   status: SimulationStatus;
   connectionStatus: ConnectionStatus;
   entities: EntityState[];
-  events: InterceptionEvent[];
+  events: RuntimeEvent[];
 
   setSimState: (patch: Partial<Omit<SimulationStore, 'setSimState' | 'addEvent' | 'reset' | 'setConnectionStatus'>>) => void;
-  addEvent: (event: InterceptionEvent) => void;
+  addEvent: (event: RuntimeEvent) => void;
   setConnectionStatus: (s: ConnectionStatus) => void;
   reset: () => void;
 }
@@ -28,13 +28,22 @@ export const useSimulationStore = create<SimulationStore>((set) => ({
   entities: [],
   events: [],
 
-  setSimState: (patch) => set((s) => ({ ...s, ...patch })),
+  setSimState: (patch) => set((s) => {
+    const rewound = typeof patch.simTimeS === 'number' && patch.simTimeS + 0.001 < s.simTimeS;
+    const scenarioChanged = typeof patch.scenarioId === 'string' && patch.scenarioId !== s.scenarioId;
+
+    return {
+      ...s,
+      ...patch,
+      events: rewound || scenarioChanged ? [] : s.events,
+    };
+  }),
 
   addEvent: (event) =>
     set((s) => (
       s.events.some((existing) => existing.event_id === event.event_id)
         ? s
-        : { events: [...s.events, event] }
+        : { events: [...s.events, event].sort((a, b) => a.sim_time_s - b.sim_time_s) }
     )),
 
   setConnectionStatus: (connectionStatus) => set({ connectionStatus }),
@@ -50,3 +59,32 @@ export const useSimulationStore = create<SimulationStore>((set) => ({
       events: [],
     }),
 }));
+
+export function getDetectedThreatIdsForSensor(entities: EntityState[], sensorId: string): string[] {
+  const sensor = entities.find((entity) => entity.id === sensorId);
+  return sensor?.detected_threat_ids ?? [];
+}
+
+export function getActiveEngagementTargetForBattery(
+  entities: EntityState[],
+  batteryId: string,
+): string | null {
+  const battery = entities.find((entity) => entity.id === batteryId);
+  return battery?.current_target_id ?? null;
+}
+
+export function getTrackedThreatIdsFromEvents(events: RuntimeEvent[]): string[] {
+  return Array.from(new Set(
+    events
+      .filter((event) => isSensorTrackEvent(event))
+      .map((event) => event.threat_id),
+  ));
+}
+
+export function getEngagedThreatIdsFromEvents(events: RuntimeEvent[]): string[] {
+  return Array.from(new Set(
+    events
+      .filter((event) => isEngagementOrderEvent(event))
+      .map((event) => event.threat_id),
+  ));
+}

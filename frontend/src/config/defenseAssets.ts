@@ -16,6 +16,11 @@ export interface DefenseAssetConfig {
   description: string;
   cssColor: string;
   designatorPrefix: string;
+  detectionRadiusM?: number;
+  engagementRadiusM?: number;
+  trackingLatencyS?: number;
+  cooldownS?: number;
+  maxTracks?: number;
 }
 
 export const DEFENSE_ASSET_CONFIGS: DefenseAssetConfig[] = [
@@ -28,6 +33,9 @@ export const DEFENSE_ASSET_CONFIGS: DefenseAssetConfig[] = [
     description: 'Short-range interceptor site for terminal defense coverage.',
     cssColor: '#67d4ff',
     designatorPrefix: 'ID',
+    engagementRadiusM: 280_000,
+    cooldownS: 10,
+    maxTracks: 2,
   },
   {
     id: 'davids_sling',
@@ -38,6 +46,9 @@ export const DEFENSE_ASSET_CONFIGS: DefenseAssetConfig[] = [
     description: 'Medium-range interceptor battery for layered defense sectors.',
     cssColor: '#8be9ff',
     designatorPrefix: 'DS',
+    engagementRadiusM: 850_000,
+    cooldownS: 16,
+    maxTracks: 2,
   },
   {
     id: 'arrow_battery',
@@ -48,6 +59,9 @@ export const DEFENSE_ASSET_CONFIGS: DefenseAssetConfig[] = [
     description: 'High-altitude interceptor site positioned for wide-area coverage.',
     cssColor: '#9cdfff',
     designatorPrefix: 'ARW',
+    engagementRadiusM: 1_850_000,
+    cooldownS: 20,
+    maxTracks: 2,
   },
   {
     id: 'search_radar',
@@ -58,6 +72,9 @@ export const DEFENSE_ASSET_CONFIGS: DefenseAssetConfig[] = [
     description: 'Long-range search radar for initial track acquisition.',
     cssColor: '#ffe082',
     designatorPrefix: 'EWR',
+    detectionRadiusM: 2_200_000,
+    trackingLatencyS: 2,
+    maxTracks: 12,
   },
   {
     id: 'tracking_radar',
@@ -68,6 +85,9 @@ export const DEFENSE_ASSET_CONFIGS: DefenseAssetConfig[] = [
     description: 'Fire-control radar for precision tracking and handoff.',
     cssColor: '#ffd36b',
     designatorPrefix: 'TRK',
+    detectionRadiusM: 1_050_000,
+    trackingLatencyS: 0.8,
+    maxTracks: 8,
   },
 ];
 
@@ -75,4 +95,13 @@ export function getDefenseAssetConfig(id: DefenseAssetId): DefenseAssetConfig {
   const config = DEFENSE_ASSET_CONFIGS.find((candidate) => candidate.id === id);
   if (!config) throw new Error(`No DefenseAssetConfig for "${id}"`);
   return config;
+}
+
+export function getDefenseAssetConfigByDesignator(
+  designator: string | null | undefined,
+): DefenseAssetConfig | null {
+  if (!designator) return null;
+
+  const prefix = designator.split('-', 1)[0].toUpperCase();
+  return DEFENSE_ASSET_CONFIGS.find((candidate) => candidate.designatorPrefix === prefix) ?? null;
 }
