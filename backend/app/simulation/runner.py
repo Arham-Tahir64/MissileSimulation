@@ -25,6 +25,16 @@ class SimulationRunner:
             engine.stop()
         self._push_callbacks.pop(session_id, None)
 
+    async def load_definition(self, session_id: str, scenario: 'ScenarioDefinition') -> None:
+        """Create an engine directly from an inline ScenarioDefinition (no file I/O)."""
+        existing = self._engines.pop(session_id, None)
+        if existing:
+            existing.stop()
+        callback = self._push_callbacks.get(session_id)
+        if callback is None:
+            raise RuntimeError(f"No push callback registered for session '{session_id}'")
+        self._engines[session_id] = SimulationEngine(session_id, scenario, callback)
+
     async def load(self, session_id: str, scenario_id: str) -> None:
         # Stop any running engine for this session
         existing = self._engines.pop(session_id, None)

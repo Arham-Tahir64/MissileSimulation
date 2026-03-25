@@ -34,6 +34,7 @@ class InterceptionEvent(BaseModel):
 
 
 class SimulationState(BaseModel):
+    type: Literal["sim_state"] = "sim_state"
     session_id: str
     scenario_id: str
     sim_time_s: float

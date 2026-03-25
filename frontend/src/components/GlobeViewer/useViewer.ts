@@ -11,9 +11,10 @@ export function useViewer(containerId: string): Cesium.Viewer | null {
   const [viewer, setViewer] = useState<Cesium.Viewer | null>(null);
 
   useEffect(() => {
-    // Ion token — replace with your own or leave empty for offline/free basemap use
     Cesium.Ion.defaultAccessToken = import.meta.env.VITE_CESIUM_ION_TOKEN ?? '';
 
+    // Create viewer without an imageryProvider — Cesium will use Ion's Bing Maps
+    // Aerial (asset 2) automatically when a valid Ion token is set.
     const v = new Cesium.Viewer(containerId, {
       animation: false,
       baseLayerPicker: false,
@@ -31,9 +32,17 @@ export function useViewer(containerId: string): Cesium.Viewer | null {
     v.scene.backgroundColor = Cesium.Color.fromCssColorString('#0a0a0f');
     v.scene.globe.enableLighting = true;
 
-    // Expose to the module-level registry so non-component code can access the viewer
+    // World Terrain (3D elevation) via Ion
+    Cesium.createWorldTerrainAsync().then((terrain) => {
+      if (!v.isDestroyed()) v.terrainProvider = terrain;
+    }).catch(() => {});
+
+    // OSM Buildings via Ion
+    Cesium.createOsmBuildingsAsync().then((buildings) => {
+      if (!v.isDestroyed()) v.scene.primitives.add(buildings);
+    }).catch(() => {});
+
     registerViewer(v);
-    // Trigger re-render so EntityLayer / TrajectoryLayer receive the real viewer
     setViewer(v);
 
     return () => {

@@ -13,12 +13,15 @@ class WsClient {
   private reconnectAttempt = 0;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private intentionalClose = false;
+  // Commands queued while the socket is still in CONNECTING state
+  private _sendQueue: ClientCommand[] = [];
 
   connect(sessionId: string): void {
     if (this.socket) this.disconnect();
     this.sessionId = sessionId;
     this.intentionalClose = false;
     this.reconnectAttempt = 0;
+    this._sendQueue = [];
     this._open(sessionId);
   }
 
@@ -29,6 +32,11 @@ class WsClient {
     socket.onopen = () => {
       this.reconnectAttempt = 0;
       useSimulationStore.getState().setConnectionStatus('connected');
+      // Flush any commands that arrived while the socket was connecting
+      for (const cmd of this._sendQueue) {
+        socket.send(JSON.stringify(cmd));
+      }
+      this._sendQueue = [];
     };
 
     socket.onmessage = (ev) => {
@@ -63,7 +71,16 @@ class WsClient {
   }
 
   send(cmd: ClientCommand): void {
-    if (!this.socket || this.socket.readyState !== WebSocket.OPEN) {
+    if (!this.socket) {
+      console.warn('[WsClient] Cannot send — no socket');
+      return;
+    }
+    if (this.socket.readyState === WebSocket.CONNECTING) {
+      // Socket is still opening — queue and send once open
+      this._sendQueue.push(cmd);
+      return;
+    }
+    if (this.socket.readyState !== WebSocket.OPEN) {
       console.warn('[WsClient] Cannot send — socket not open');
       return;
     }

@@ -71,4 +71,10 @@ export interface CmdSetSpeed {
   speed: number;
 }
 
-export type ClientCommand = CmdLoad | CmdPlay | CmdPause | CmdSeek | CmdSetSpeed;
+export interface CmdLoadDefinition {
+  type: 'cmd_load_definition';
+  /** Inline ScenarioDefinition — backend creates engine without touching the filesystem. */
+  definition: import('./scenario').ScenarioDefinition;
+}
+
+export type ClientCommand = CmdLoad | CmdLoadDefinition | CmdPlay | CmdPause | CmdSeek | CmdSetSpeed;

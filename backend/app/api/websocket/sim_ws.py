@@ -3,6 +3,7 @@ import json
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from app.simulation.runner import SimulationRunner
 from app.models.schema.ws_messages import ClientMessage, CmdLoad, CmdPlay, CmdPause, CmdSeek, CmdSetSpeed
+from app.models.schema.scenario import ScenarioDefinition
 
 router = APIRouter()
 _runner = SimulationRunner()
@@ -43,9 +44,20 @@ async def simulation_ws(websocket: WebSocket, session_id: str):
                     await websocket.send_text(json.dumps({
                         "type": "sim_status",
                         "session_id": session_id,
-                        "status": "idle",
+                        "status": "paused",
                         "sim_time_s": 0.0,
                         "message": f"Scenario '{msg.scenario_id}' loaded.",
+                    }))
+
+                elif msg_type == "cmd_load_definition":
+                    scenario = ScenarioDefinition(**data["definition"])
+                    await _runner.load_definition(session_id, scenario)
+                    await websocket.send_text(json.dumps({
+                        "type": "sim_status",
+                        "session_id": session_id,
+                        "status": "paused",
+                        "sim_time_s": 0.0,
+                        "message": f"Custom scenario '{scenario.metadata.name}' loaded.",
                     }))
 
                 elif msg_type == "cmd_play":
