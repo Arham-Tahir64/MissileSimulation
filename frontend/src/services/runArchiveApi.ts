@@ -101,6 +101,7 @@ function mapRunDetail(run: RawRunDetail): ArchivedRunDetail {
     investigation_cues: buildInvestigationCues(run.events),
     track_outcomes: movingTracks.map((entity) => buildTrackOutcome(entity, definitionMap.get(entity.id), latestEventMap)),
     asset_activity: defenseAssets.map((entity) => buildAssetActivity(entity, definitionMap.get(entity.id), latestEventMap)),
+    scenario_definition: run.scenario,
   };
 }
 

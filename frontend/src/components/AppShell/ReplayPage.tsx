@@ -89,12 +89,7 @@ export function ReplayPage({
   return (
     <div style={styles.wrap}>
       <div style={styles.header}>
-        <div>
-          <div style={styles.title}>Replay</div>
-          <div style={styles.copy}>
-            Replay gets its own workflow. Time, events, and selected state stay synchronized without competing with live monitoring controls.
-          </div>
-        </div>
+        <div style={styles.title}>Replay</div>
         <button onClick={onGoToMonitor} style={styles.button}>RETURN_TO_MONITOR</button>
       </div>
 
@@ -175,20 +170,14 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'flex',
     justifyContent: 'space-between',
     gap: 24,
-    alignItems: 'start',
+    alignItems: 'center',
     pointerEvents: 'auto',
   },
   title: {
     color: hudTheme.text,
     fontFamily: "'Space Grotesk', 'Inter', sans-serif",
     fontSize: 30,
-  },
-  copy: {
-    color: hudTheme.muted,
-    fontSize: 14,
-    marginTop: 6,
-    maxWidth: 560,
-    lineHeight: 1.6,
+    lineHeight: 1,
   },
   button: {
     border: `1px solid ${hudTheme.line}`,
@@ -201,7 +190,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   leftRail: {
     position: 'absolute',
-    top: 82,
+    top: 52,
     left: 0,
     bottom: 146,
     width: 380,
@@ -209,7 +198,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   rightRail: {
     position: 'absolute',
-    top: 82,
+    top: 52,
     right: 0,
     bottom: 146,
     width: 380,

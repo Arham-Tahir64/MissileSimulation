@@ -1,3 +1,5 @@
+import { ScenarioDefinition } from './scenario';
+
 export type ArchivedRunStatus = 'completed' | 'failed' | 'interrupted' | 'running';
 
 export type ArchivedEventType = 'sensor_track' | 'engagement_order' | 'event_intercept' | 'annotation';
@@ -58,4 +60,5 @@ export interface ArchivedRunDetail extends ArchivedRunSummary {
   investigation_cues: ArchivedInvestigationCue[];
   track_outcomes: ArchivedTrackOutcome[];
   asset_activity: ArchivedAssetActivity[];
+  scenario_definition: ScenarioDefinition;
 }

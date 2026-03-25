@@ -5,6 +5,16 @@ import path from 'path'
 
 export default defineConfig({
   plugins: [react(), cesium()],
+  test: {
+    environment: 'jsdom',
+    globals: true,
+    setupFiles: ['./src/test/setup.ts'],
+    exclude: ['**/node_modules/**', '**/dist/**'],
+    coverage: {
+      reporter: ['text', 'html'],
+      exclude: ['**/node_modules/**', '**/dist/**', '**/test/**'],
+    },
+  },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),

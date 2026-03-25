@@ -61,10 +61,7 @@ export function AnalysisPage({ snapshot }: { snapshot: HudSnapshot }) {
 
       <section style={styles.mainGrid}>
         <section style={styles.sectionTall}>
-          <SectionHeader
-            title="Outcome Ledger"
-            subtitle="Track states are presented as a report-first ledger rather than a live operations list."
-          />
+          <SectionHeader title="Outcome Ledger" />
           <div style={styles.ledger}>
             {model.trackOutcomes.length > 0 ? (
               model.trackOutcomes.map((track) => (
@@ -80,19 +77,13 @@ export function AnalysisPage({ snapshot }: { snapshot: HudSnapshot }) {
                 </div>
               ))
             ) : (
-              <EmptyState
-                title="No track outcomes yet"
-                copy="Run a scenario to populate final states, event summaries, and asset activity."
-              />
+              <EmptyState title="No track outcomes yet" />
             )}
           </div>
         </section>
 
         <section style={styles.sectionCard}>
-          <SectionHeader
-            title="Event Distribution"
-            subtitle="Sensor, tasking, and resolution events are grouped so the overall scenario cadence is easier to read."
-          />
+          <SectionHeader title="Event Distribution" />
           <div style={styles.distributionList}>
             {model.eventBreakdown.map((row) => (
               <div key={row.label} style={styles.distributionRow}>
@@ -115,10 +106,7 @@ export function AnalysisPage({ snapshot }: { snapshot: HudSnapshot }) {
         </section>
 
         <section style={styles.sectionCard}>
-          <SectionHeader
-            title="Asset Activity"
-            subtitle="A compact summary of which fictional sensors and batteries were actively participating."
-          />
+          <SectionHeader title="Asset Activity" />
           <div style={styles.assetList}>
             {model.assetActivity.length > 0 ? (
               model.assetActivity.map((asset) => (
@@ -137,19 +125,13 @@ export function AnalysisPage({ snapshot }: { snapshot: HudSnapshot }) {
                 </div>
               ))
             ) : (
-              <EmptyState
-                title="No asset activity"
-                copy="This run did not surface sensor or battery activity in the current report snapshot."
-              />
+              <EmptyState title="No asset activity" />
             )}
           </div>
         </section>
 
         <section style={styles.sectionTall}>
-          <SectionHeader
-            title="Investigation Queue"
-            subtitle="Recent high-signal events stay one click away so you can jump directly into Replay at the relevant moment."
-          />
+          <SectionHeader title="Investigation Queue" />
           <div style={styles.cueList}>
             {model.investigationCues.length > 0 ? (
               model.investigationCues.map((cue) => (
@@ -168,10 +150,7 @@ export function AnalysisPage({ snapshot }: { snapshot: HudSnapshot }) {
                 </button>
               ))
             ) : (
-              <EmptyState
-                title="No replay hooks yet"
-                copy="Once runtime events are logged, this queue becomes a direct handoff from report view into Replay."
-              />
+              <EmptyState title="No replay hooks yet" />
             )}
           </div>
         </section>
@@ -180,11 +159,10 @@ export function AnalysisPage({ snapshot }: { snapshot: HudSnapshot }) {
   );
 }
 
-function SectionHeader({ title, subtitle }: { title: string; subtitle: string }) {
+function SectionHeader({ title }: { title: string }) {
   return (
     <div style={styles.sectionHeader}>
       <div style={sectionTitle}>{title}</div>
-      <div style={styles.sectionCopy}>{subtitle}</div>
     </div>
   );
 }
@@ -224,11 +202,10 @@ function TonePill({ tone, text }: { tone: 'cyan' | 'amber' | 'red'; text: string
   );
 }
 
-function EmptyState({ title, copy }: { title: string; copy: string }) {
+function EmptyState({ title }: { title: string }) {
   return (
     <div style={styles.emptyState}>
       <div style={styles.rowTitle}>{title}</div>
-      <div style={styles.sectionCopy}>{copy}</div>
     </div>
   );
 }
@@ -385,11 +362,6 @@ const styles: Record<string, React.CSSProperties> = {
   sectionHeader: {
     display: 'grid',
     gap: 6,
-  },
-  sectionCopy: {
-    color: hudTheme.muted,
-    fontSize: 13,
-    lineHeight: 1.7,
   },
   ledger: {
     display: 'flex',

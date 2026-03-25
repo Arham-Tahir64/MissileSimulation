@@ -9,6 +9,7 @@ import { CinematicCameraController } from './CinematicCameraController';
 import { CinematicMissileLayer } from './CinematicMissileLayer';
 import { ImpactEffectsLayer } from './ImpactEffectsLayer';
 import { AssetOverlayLayer } from './AssetOverlayLayer';
+import { CoverageLayer } from './CoverageLayer';
 import { useSimulationStore } from '../../store/simulationStore';
 import { useScenarioStore } from '../../store/scenarioStore';
 import { useDashboardStore } from '../../store/dashboardStore';
@@ -65,6 +66,7 @@ export function GlobeViewer() {
           showRangeRings={effectiveLayers.rangeRings}
         />
       )}
+      {effectiveLayers.rangeRings && <CoverageLayer viewer={viewer} />}
       {activeScenario && effectiveLayers.trajectories && (
         <TrajectoryLayer
           viewer={viewer}

@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { TopNav } from './TopNav';
 import { OverviewPage } from './OverviewPage';
 import { MonitorPage } from './MonitorPage';
@@ -7,6 +7,7 @@ import { AnalysisPage } from './AnalysisPage';
 import { RunArchivePage } from './archive/RunArchivePage';
 import { SettingsPage } from './SettingsPage';
 import { getViewer } from '../../services/viewerRegistry';
+import { wsClient } from '../../services/wsClient';
 import { useCameraStore } from '../../store/cameraStore';
 import { useDashboardStore } from '../../store/dashboardStore';
 import { usePlaybackStore } from '../../store/playbackStore';
@@ -16,6 +17,7 @@ import { deriveHudSnapshot, AlertRow, ReplayEventMarker } from '../HUD/hudSelect
 import { timeToFraction } from '../../utils/timeUtils';
 import { usePlayback } from '../Playback/usePlayback';
 import { flyToScenario } from '../../utils/cesiumHelpers';
+import { ArchivedRunDetail } from '../../types/runArchive';
 
 export function AppShell() {
   const {
@@ -25,6 +27,7 @@ export function AppShell() {
     setTrackedEntityId,
     setFollowPreset,
     setHudExpanded,
+    reset: resetCamera,
   } = useCameraStore();
   const {
     currentPage,
@@ -38,10 +41,20 @@ export function AppShell() {
     setDensity,
     setReduceMotion,
   } = useDashboardStore();
-  const { simTimeS, status, connectionStatus, entities, events, scenarioId } = useSimulationStore();
-  const { activeScenario } = useScenarioStore();
-  const { durationS, isPlaying, speed } = usePlaybackStore();
+  const { simTimeS, status, connectionStatus, entities, events, scenarioId, reset: resetSimulation } = useSimulationStore();
+  const { activeScenario, setActiveScenario } = useScenarioStore();
+  const { durationS, isPlaying, speed, setDuration, setPlaying, clearBookmarks } = usePlaybackStore();
   const { seek } = usePlayback();
+
+  // Auto-navigate to Analysis when a simulation completes.
+  const prevStatusRef = useRef(status);
+  useEffect(() => {
+    const prev = prevStatusRef.current;
+    prevStatusRef.current = status;
+    if (prev !== 'completed' && status === 'completed' && currentPage !== 'analysis') {
+      setCurrentPage('analysis');
+    }
+  }, [status, currentPage, setCurrentPage]);
 
   const snapshot = useMemo(() => deriveHudSnapshot({
     scenarioId,
@@ -128,6 +141,30 @@ export function AppShell() {
     }
   };
 
+  const handleOpenArchivedReplay = (run: ArchivedRunDetail) => {
+    const sessionId = `archive_${Date.now()}`;
+
+    resetSimulation();
+    clearBookmarks();
+    setPlaying(false);
+    setDuration(run.duration_s);
+    setActiveScenario(run.scenario_definition);
+    resetCamera();
+    setCurrentPage('replay');
+    setHudExpanded(false);
+
+    wsClient.connect(sessionId);
+    wsClient.send({
+      type: 'cmd_load_definition',
+      definition: run.scenario_definition,
+    });
+
+    const viewer = getViewer();
+    if (viewer) {
+      flyToScenario(viewer, run.scenario_definition);
+    }
+  };
+
   return (
     <div style={{
       ...styles.shell,
@@ -205,7 +242,7 @@ export function AppShell() {
 
       {currentPage === 'analysis' && <AnalysisPage snapshot={snapshot} />}
 
-      {currentPage === 'archive' && <RunArchivePage />}
+      {currentPage === 'archive' && <RunArchivePage onOpenReplay={handleOpenArchivedReplay} />}
 
       {currentPage === 'settings' && (
         <SettingsPage

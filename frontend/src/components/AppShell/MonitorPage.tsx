@@ -38,12 +38,7 @@ export function MonitorPage({
   return (
     <div style={styles.wrap}>
       <div style={styles.pageHeader}>
-        <div>
-          <div style={styles.headerTitle}>Monitor</div>
-          <div style={styles.headerCopy}>
-            Live watching stays globe-first. Tracks, assets, and alerts rotate through one sidebar so the scene stays readable.
-          </div>
-        </div>
+        <div style={styles.headerTitle}>Monitor</div>
         <div style={styles.headerActions}>
           <button onClick={onOpenReplay} style={styles.ghostButton}>GO_TO_REPLAY</button>
           <button onClick={onOpenSettings} style={styles.ghostButton}>VIEW_OPTIONS</button>
@@ -149,13 +144,7 @@ const styles: Record<string, React.CSSProperties> = {
     color: hudTheme.text,
     fontFamily: "'Space Grotesk', 'Inter', sans-serif",
     fontSize: 30,
-  },
-  headerCopy: {
-    color: hudTheme.muted,
-    fontSize: 14,
-    marginTop: 6,
-    maxWidth: 560,
-    lineHeight: 1.6,
+    lineHeight: 1,
   },
   headerActions: {
     display: 'flex',
@@ -172,7 +161,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   leftPanel: {
     position: 'absolute',
-    top: 82,
+    top: 54,
     left: 0,
     bottom: 98,
     width: 338,

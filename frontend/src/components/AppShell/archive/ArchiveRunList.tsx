@@ -4,15 +4,23 @@ import { ArchivedRunSummary } from '../../../types/runArchive';
 export function ArchiveRunList({
   runs,
   selectedRunId,
+  compareMode,
+  compareRunIds,
   loading,
   error,
   onSelect,
+  onToggleCompareMode,
+  onToggleCompareRun,
 }: {
   runs: ArchivedRunSummary[];
   selectedRunId: string | null;
+  compareMode: boolean;
+  compareRunIds: Set<string>;
   loading: boolean;
   error: string | null;
   onSelect: (runId: string) => void;
+  onToggleCompareMode: () => void;
+  onToggleCompareRun: (runId: string) => void;
 }) {
   return (
     <section style={styles.wrap}>
@@ -21,12 +29,37 @@ export function ArchiveRunList({
           <div style={sectionTitle}>Run Archive</div>
           <div style={styles.title}>Saved Sessions</div>
         </div>
-        <div style={styles.count}>{runs.length}</div>
+        <div style={styles.headerRight}>
+          <div style={styles.count}>{runs.length}</div>
+          {runs.length >= 2 && (
+            <button
+              type="button"
+              onClick={onToggleCompareMode}
+              style={{
+                ...buttonReset,
+                ...styles.compareToggle,
+                color: compareMode ? hudTheme.cyanSoft : hudTheme.muted,
+                borderColor: compareMode ? hudTheme.cyanSoft : hudTheme.line,
+                background: compareMode ? 'rgba(0,229,255,0.08)' : 'transparent',
+              }}
+            >
+              {compareMode ? `COMPARE (${compareRunIds.size})` : 'COMPARE'}
+            </button>
+          )}
+        </div>
       </div>
 
-      <div style={styles.copy}>
-        Archived runs let you reopen a completed fictional scenario without rebuilding it from scratch.
-      </div>
+      {compareMode && (
+        <div style={styles.compareHint}>
+          Select 2–4 runs to compare side-by-side. Click a run to toggle it.
+        </div>
+      )}
+
+      {!compareMode && (
+        <div style={styles.copy}>
+          Archived runs let you reopen a completed fictional scenario without rebuilding it from scratch.
+        </div>
+      )}
 
       {loading && <div style={styles.message}>Loading run history…</div>}
       {error && !loading && <div style={styles.error}>{error}</div>}
@@ -39,6 +72,42 @@ export function ArchiveRunList({
       {!loading && !error && runs.length > 0 && (
         <div style={styles.list}>
           {runs.map((run) => {
+            if (compareMode) {
+              const checked = compareRunIds.has(run.id);
+              const maxReached = compareRunIds.size >= 4 && !checked;
+              return (
+                <button
+                  key={run.id}
+                  type="button"
+                  onClick={() => !maxReached && onToggleCompareRun(run.id)}
+                  style={{
+                    ...buttonReset,
+                    ...styles.row,
+                    background: checked ? 'rgba(0,229,255,0.1)' : 'rgba(255,255,255,0.02)',
+                    boxShadow: checked ? 'inset 2px 0 0 #00e5ff' : 'none',
+                    opacity: maxReached ? 0.4 : 1,
+                    cursor: maxReached ? 'not-allowed' : 'pointer',
+                  }}
+                >
+                  <div style={styles.rowTop}>
+                    <div style={styles.compareCheck}>
+                      <span style={{ ...styles.checkBox, borderColor: checked ? hudTheme.cyan : hudTheme.line, background: checked ? hudTheme.cyan : 'transparent' }}>
+                        {checked && <span style={styles.checkMark}>✓</span>}
+                      </span>
+                      <div style={styles.rowTitle}>{run.scenario_name}</div>
+                    </div>
+                    <StatusPill status={run.status} />
+                  </div>
+                  <div style={styles.rowMeta}>{run.session_id}</div>
+                  <div style={styles.rowGrid}>
+                    <Metric label="Duration" value={`${Math.round(run.duration_s)}S`} />
+                    <Metric label="Events" value={String(run.event_count)} />
+                    <Metric label="Intercepts" value={`${run.intercept_successes}/${run.intercept_misses}`} />
+                  </div>
+                </button>
+              );
+            }
+
             const selected = run.id === selectedRunId;
             return (
               <button
@@ -106,6 +175,12 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: 'flex-start',
     gap: 12,
   },
+  headerRight: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'flex-end',
+    gap: 8,
+  },
   title: {
     color: hudTheme.text,
     fontFamily: "'Space Grotesk', 'Inter', sans-serif",
@@ -117,6 +192,42 @@ const styles: Record<string, React.CSSProperties> = {
     fontFamily: "'Space Grotesk', 'Inter', sans-serif",
     fontSize: 28,
     lineHeight: 1,
+  },
+  compareToggle: {
+    border: '1px solid',
+    padding: '7px 10px',
+    fontSize: 10,
+    letterSpacing: '0.14em',
+    cursor: 'pointer',
+  },
+  compareHint: {
+    color: hudTheme.cyanSoft,
+    fontSize: 12,
+    lineHeight: 1.5,
+    padding: '8px 10px',
+    background: 'rgba(0,229,255,0.06)',
+    border: `1px solid rgba(0,229,255,0.14)`,
+  },
+  compareCheck: {
+    display: 'flex',
+    gap: 10,
+    alignItems: 'center',
+    minWidth: 0,
+  },
+  checkBox: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 16,
+    height: 16,
+    border: '1px solid',
+    flexShrink: 0,
+  },
+  checkMark: {
+    color: '#081016',
+    fontSize: 10,
+    lineHeight: 1,
+    fontWeight: 700,
   },
   copy: {
     color: hudTheme.muted,

@@ -2,7 +2,8 @@ import { GlobeViewer } from './components/GlobeViewer/GlobeViewer';
 import { MissileTypePicker } from './components/MissileTypePicker/MissileTypePicker';
 import { LaunchPanel } from './components/Launch/LaunchPanel';
 import { TacticalShell } from './components/HUD/TacticalShell';
-import { useEffect } from 'react';
+import { RouterSync } from './router/RouterSync';
+import { useEffect, useRef } from 'react';
 import { usePlacementStore } from './store/placementStore';
 import { useSimulationStore } from './store/simulationStore';
 import { useCameraStore } from './store/cameraStore';
@@ -20,20 +21,27 @@ export function App() {
   const phase  = usePlacementStore((s) => s.phase);
   const placements = usePlacementStore((s) => s.placements);
   const status = useSimulationStore((s) => s.status);
+  const currentPage = useDashboardStore((s) => s.currentPage);
+  const setCurrentPage = useDashboardStore((s) => s.setCurrentPage);
   const resetCamera = useCameraStore((s) => s.reset);
   const resetDashboard = useDashboardStore((s) => s.reset);
+  const previousShowShellRef = useRef(false);
 
-  const showSimulationHud = phase === 'simulating' || status !== 'idle';
+  const showSimulationHud = phase === 'simulating' || status !== 'idle' || currentPage !== 'overview';
 
   useEffect(() => {
-    if (phase === 'idle' && status === 'idle') {
+    const wasShowingShell = previousShowShellRef.current;
+    previousShowShellRef.current = showSimulationHud;
+
+    if (wasShowingShell && phase === 'idle' && status === 'idle' && currentPage === 'overview') {
       resetCamera();
       resetDashboard();
     }
-  }, [phase, resetCamera, resetDashboard, status]);
+  }, [currentPage, phase, resetCamera, resetDashboard, showSimulationHud, status]);
 
   return (
     <div style={styles.root}>
+      <RouterSync />
       {/* ── Globe — fills entire viewport ──────────────────────────── */}
       <div style={styles.globe}>
         <GlobeViewer />
@@ -43,6 +51,18 @@ export function App() {
       {!showSimulationHud && (
         <div style={styles.topLeft}>
           <MissileTypePicker />
+        </div>
+      )}
+
+      {!showSimulationHud && (
+        <div style={styles.topRight}>
+          <button
+            type="button"
+            onClick={() => setCurrentPage('archive')}
+            style={styles.archiveButton}
+          >
+            OPEN_ARCHIVE
+          </button>
         </div>
       )}
 
@@ -76,6 +96,23 @@ const styles: Record<string, React.CSSProperties> = {
     top: 16,
     left: 16,
     zIndex: 10,
+  },
+  topRight: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    zIndex: 10,
+  },
+  archiveButton: {
+    border: '1px solid rgba(0, 229, 255, 0.24)',
+    background: 'linear-gradient(180deg, rgba(0,229,255,0.12), rgba(8,10,14,0.84))',
+    color: '#dfe2eb',
+    padding: '12px 14px',
+    cursor: 'pointer',
+    textTransform: 'uppercase',
+    letterSpacing: '0.16em',
+    fontSize: 11,
+    fontFamily: "'IBM Plex Mono', ui-monospace, monospace",
   },
   bottom: {
     position: 'absolute',

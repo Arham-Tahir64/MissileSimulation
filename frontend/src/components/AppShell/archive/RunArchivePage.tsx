@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ArchiveRunDetail } from './ArchiveRunDetail';
+import { ArchiveRunComparison } from './ArchiveRunComparison';
 import { ArchiveRunList } from './ArchiveRunList';
 import { fetchArchivedRun, fetchArchivedRuns } from '../../../services/runArchiveApi';
 import { ArchivedRunDetail, ArchivedRunSummary } from '../../../types/runArchive';
@@ -17,6 +18,12 @@ export function RunArchivePage({
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [listError, setListError] = useState<string | null>(null);
   const [detailError, setDetailError] = useState<string | null>(null);
+
+  // Comparison state
+  const [compareMode, setCompareMode] = useState(false);
+  const [compareRunIds, setCompareRunIds] = useState<Set<string>>(new Set());
+  const [compareRuns, setCompareRuns] = useState<ArchivedRunDetail[]>([]);
+  const [loadingCompare, setLoadingCompare] = useState(false);
 
   const loadRuns = () => {
     setLoadingRuns(true);
@@ -86,6 +93,50 @@ export function RunArchivePage({
     };
   }, [selectedRunId]);
 
+  // Fetch detail for each run selected for comparison
+  useEffect(() => {
+    if (!compareMode || compareRunIds.size < 2) {
+      setCompareRuns([]);
+      return;
+    }
+
+    let active = true;
+    setLoadingCompare(true);
+
+    Promise.all([...compareRunIds].map((id) => fetchArchivedRun(id)))
+      .then((results) => {
+        if (!active) return;
+        setCompareRuns(results);
+      })
+      .catch(() => {
+        if (!active) return;
+        setCompareRuns([]);
+      })
+      .finally(() => {
+        if (active) setLoadingCompare(false);
+      });
+
+    return () => { active = false; };
+  }, [compareMode, compareRunIds]);
+
+  const handleToggleCompareMode = () => {
+    setCompareMode((prev) => !prev);
+    setCompareRunIds(new Set());
+    setCompareRuns([]);
+  };
+
+  const handleToggleCompareRun = (runId: string) => {
+    setCompareRunIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(runId)) {
+        next.delete(runId);
+      } else if (next.size < 4) {
+        next.add(runId);
+      }
+      return next;
+    });
+  };
+
   const totals = useMemo(() => ({
     completed: runs.filter((run) => run.status === 'completed').length,
     scenarios: new Set(runs.map((run) => run.scenario_name)).size,
@@ -98,9 +149,6 @@ export function RunArchivePage({
         <div>
           <div style={styles.eyebrow}>Archive Surface</div>
           <h1 style={styles.title}>Reopen completed runs without rebuilding the whole theater.</h1>
-          <p style={styles.copy}>
-            The archive page is designed as a calmer report-entry surface. It is meant to sit beside Overview and Analysis, not compete with live monitoring.
-          </p>
         </div>
 
         <div style={styles.heroMetrics}>
@@ -112,12 +160,7 @@ export function RunArchivePage({
       </header>
 
       <section style={styles.archiveNotice}>
-        <div>
-          <div style={styles.archiveNoticeTitle}>AUTO_SAVE_ACTIVE</div>
-          <div style={styles.archiveNoticeCopy}>
-            Completed runs are archived automatically when playback finishes. Use this page as the explicit save surface for reopening those reports.
-          </div>
-        </div>
+        <div style={styles.archiveNoticeTitle}>AUTO_SAVE_ACTIVE</div>
         <button type="button" onClick={() => void loadRuns()} style={styles.refreshButton}>
           REFRESH_ARCHIVE
         </button>
@@ -128,18 +171,29 @@ export function RunArchivePage({
           <ArchiveRunList
             runs={runs}
             selectedRunId={selectedRunId}
+            compareMode={compareMode}
+            compareRunIds={compareRunIds}
             loading={loadingRuns}
             error={listError}
             onSelect={setSelectedRunId}
+            onToggleCompareMode={handleToggleCompareMode}
+            onToggleCompareRun={handleToggleCompareRun}
           />
         </div>
         <div style={styles.rightColumn}>
-          <ArchiveRunDetail
-            run={selectedRun}
-            loading={loadingDetail}
-            error={detailError}
-            onOpenReplay={onOpenReplay}
-          />
+          {compareMode ? (
+            <ArchiveRunComparison
+              runs={compareRuns}
+              loading={loadingCompare}
+            />
+          ) : (
+            <ArchiveRunDetail
+              run={selectedRun}
+              loading={loadingDetail}
+              error={detailError}
+              onOpenReplay={onOpenReplay}
+            />
+          )}
         </div>
       </div>
     </div>
@@ -160,7 +214,7 @@ const styles: Record<string, React.CSSProperties> = {
     position: 'absolute',
     inset: '96px 20px 24px 20px',
     display: 'grid',
-    gridTemplateRows: 'auto minmax(0, 1fr)',
+    gridTemplateRows: 'auto auto minmax(0, 1fr)',
     gap: 18,
     pointerEvents: 'auto',
   },
@@ -184,17 +238,9 @@ const styles: Record<string, React.CSSProperties> = {
     margin: '10px 0 0 0',
     color: hudTheme.text,
     fontFamily: "'Space Grotesk', 'Inter', sans-serif",
-    fontSize: 34,
-    lineHeight: 1.04,
+    fontSize: 24,
+    lineHeight: 1.15,
     maxWidth: 700,
-  },
-  copy: {
-    color: hudTheme.muted,
-    fontSize: 14,
-    lineHeight: 1.7,
-    maxWidth: 620,
-    marginTop: 10,
-    marginBottom: 0,
   },
   heroMetrics: {
     display: 'grid',
@@ -233,13 +279,6 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: 10,
     letterSpacing: '0.18em',
     textTransform: 'uppercase',
-  },
-  archiveNoticeCopy: {
-    color: hudTheme.muted,
-    fontSize: 13,
-    lineHeight: 1.6,
-    marginTop: 6,
-    maxWidth: 720,
   },
   refreshButton: {
     border: `1px solid ${hudTheme.line}`,
