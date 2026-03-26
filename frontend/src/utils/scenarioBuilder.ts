@@ -12,6 +12,7 @@ import { getMissileTypeConfig, estimateFlightTimeS } from '../config/missileType
 import { getDefenseAssetConfig } from '../config/defenseAssets';
 import { PlannedPlacement } from '../store/placementStore';
 import { haversineDistanceM } from './cesiumHelpers';
+import { expandBarragePlacement } from './barrageUtils';
 
 export interface SinglePlacement {
   missileType: EntityType;
@@ -28,7 +29,11 @@ const POST_FLIGHT_BUFFER_S = 20; // seconds after last entity lands before scena
  * The scenario id and metadata are auto-generated.
  */
 export function buildScenario(placements: PlannedPlacement[]): ScenarioDefinition {
-  const entities = placements.map((p, i) => {
+  const expandedPlacements = placements.flatMap((placement) => (
+    placement.kind === 'barrage' ? expandBarragePlacement(placement) : placement
+  ));
+
+  const entities = expandedPlacements.map((p, i) => {
     if (p.kind === 'asset') {
       const cfg = getDefenseAssetConfig(p.assetId);
       const id = `${cfg.designatorPrefix}-${i + 1}`;
@@ -68,7 +73,7 @@ export function buildScenario(placements: PlannedPlacement[]): ScenarioDefinitio
   });
 
   // Compute longest flight time to determine scenario duration
-  const missilePlacements = placements.filter((placement) => placement.kind === 'missile');
+  const missilePlacements = expandedPlacements.filter((placement) => placement.kind === 'missile');
   const maxFlightTime = missilePlacements.reduce((max, p) => {
     const cfg = getMissileTypeConfig(p.missileType);
     const dist = haversineDistanceM(p.origin, p.target);
@@ -78,10 +83,10 @@ export function buildScenario(placements: PlannedPlacement[]): ScenarioDefinitio
 
   const duration = Math.max(30, Math.ceil(maxFlightTime) + POST_FLIGHT_BUFFER_S);
 
-  const threatCount = placements.filter(
+  const threatCount = expandedPlacements.filter(
     (p) => p.kind === 'missile' && p.missileType !== 'interceptor',
   ).length;
-  const interceptorCount = placements.filter(
+  const interceptorCount = expandedPlacements.filter(
     (p) =>
       (p.kind === 'missile' && p.missileType === 'interceptor')
       || (p.kind === 'asset' && p.entityType === 'interceptor'),
@@ -91,8 +96,10 @@ export function buildScenario(placements: PlannedPlacement[]): ScenarioDefinitio
   const scenarioName = placements.length === 1
     ? placements[0].kind === 'missile'
       ? `${getMissileTypeConfig(placements[0].missileType).label} Launch`
+      : placements[0].kind === 'barrage'
+        ? `${getMissileTypeConfig(placements[0].missileType).label} Barrage`
       : `${getDefenseAssetConfig(placements[0].assetId).label} Placement`
-    : `Custom Scenario (${placements.length} entities)`;
+    : `Custom Scenario (${entities.length} entities)`;
 
   return {
     metadata: {

@@ -1,4 +1,13 @@
-import { usePlacementStore, PlannedPlacement, PlannedLaunchPlacement } from '../../store/placementStore';
+import { useState } from 'react';
+import {
+  usePlacementStore,
+  PlannedPlacement,
+  PlannedLaunchPlacement,
+  PlannedBarragePlacement,
+  BarrageLaunchTimingMode,
+  countPlacementAssets,
+  countPlacementLaunches,
+} from '../../store/placementStore';
 import { useScenarioStore } from '../../store/scenarioStore';
 import { usePlaybackStore } from '../../store/playbackStore';
 import { useCameraStore } from '../../store/cameraStore';
@@ -8,23 +17,38 @@ import { buildScenario } from '../../utils/scenarioBuilder';
 import { getMissileTypeConfig, estimateFlightTimeS } from '../../config/missileTypes';
 import { getDefenseAssetConfig } from '../../config/defenseAssets';
 import { haversineDistanceM } from '../../utils/cesiumHelpers';
+import { getBarragePreviewMembers } from '../../utils/barrageUtils';
 
 export function LaunchPanel() {
+  const placementStore = usePlacementStore();
   const {
     phase,
     missileType,
     origin,
     target,
     launchTimeS,
+    barrageMissileType,
+    barrageLaunchCenter,
+    barrageLaunchRadiusKm,
+    barrageTargetCenter,
+    barrageTargetRadiusKm,
+    barrageCount,
+    barrageSeed,
+    barrageLaunchTimingMode,
+    barrageLaunchWindowS,
+    barrageLaunchTimeS,
     placements,
     setDraftLaunchTime,
     addCurrentPlacement,
+    addCurrentBarragePlacement,
     removePlacement,
     updatePlacementLaunchTime,
+    updateBarragePlacement,
+    regenerateBarrageSeed,
     beginSimulation,
     clearCurrent,
     reset,
-  } = usePlacementStore();
+  } = placementStore;
   const { setActiveScenario } = useScenarioStore();
   const { setDuration, setPlaying } = usePlaybackStore();
   const resetSimulation = useSimulationStore((s) => s.reset);
@@ -44,12 +68,40 @@ export function LaunchPanel() {
       launchTimeS,
     }
     : null;
+
+  const barrageDraftReady = phase === 'barrage_target_set'
+    && Boolean(barrageMissileType && barrageLaunchCenter && barrageTargetCenter);
+  const draftBarragePlacement: PlannedBarragePlacement | null =
+    barrageDraftReady && barrageMissileType && barrageLaunchCenter && barrageTargetCenter
+      ? {
+        id: 'draft-barrage',
+        kind: 'barrage',
+        missileType: barrageMissileType,
+        launchArea: {
+          center: barrageLaunchCenter,
+          radiusKm: barrageLaunchRadiusKm,
+        },
+        targetArea: {
+          center: barrageTargetCenter,
+          radiusKm: barrageTargetRadiusKm,
+        },
+        count: barrageCount,
+        seed: barrageSeed,
+        launchTimeS: barrageLaunchTimeS,
+        launchTimingMode: barrageLaunchTimingMode,
+        launchWindowS: barrageLaunchWindowS,
+      }
+      : null;
+
   const scenarioPlacements = [
     ...placements,
     ...(draftPlacement ? [draftPlacement] : []),
+    ...(draftBarragePlacement ? [draftBarragePlacement] : []),
   ];
 
-  if (phase === 'simulating' || (placements.length === 0 && !draftPlacement)) return null;
+  if (phase === 'simulating' || (placements.length === 0 && !draftPlacement && !draftBarragePlacement)) {
+    return null;
+  }
 
   const handleLaunch = () => {
     if (scenarioPlacements.length === 0) return;
@@ -59,8 +111,12 @@ export function LaunchPanel() {
       if (a.kind === 'missile' && b.kind === 'missile') {
         return (a.launchTimeS ?? 0) - (b.launchTimeS ?? 0);
       }
+      if (a.kind === 'barrage' && b.kind === 'barrage') {
+        return (a.launchTimeS ?? 0) - (b.launchTimeS ?? 0);
+      }
       return 0;
     });
+
     const scenario = buildScenario(orderedPlacements);
     const firstTrackableEntity =
       scenario.entities.find((entity) => entity.trajectory_type !== 'stationary')?.id
@@ -70,6 +126,7 @@ export function LaunchPanel() {
     setDuration(scenario.metadata.duration_s);
     setPlaying(true);
     resetSimulation();
+
     if (firstTrackableEntity) {
       primeFollow(firstTrackableEntity);
     } else {
@@ -85,8 +142,8 @@ export function LaunchPanel() {
     beginSimulation();
   };
 
-  const missileCount = scenarioPlacements.filter((placement) => placement.kind === 'missile').length;
-  const assetCount = scenarioPlacements.filter((placement) => placement.kind === 'asset').length;
+  const launchCount = countPlacementLaunches(scenarioPlacements);
+  const assetCount = countPlacementAssets(scenarioPlacements);
 
   return (
     <div style={styles.panel}>
@@ -94,11 +151,11 @@ export function LaunchPanel() {
         <div>
           <div style={styles.title}>Scenario Queue</div>
           <div style={styles.subtitle}>
-            {scenarioPlacements.length} entities // {missileCount} launch tracks // {assetCount} defense assets
+            {scenarioPlacements.length} queue items // {launchCount} generated launch tracks // {assetCount} defense assets
           </div>
         </div>
         <div style={styles.headerActions}>
-          {draftPlacement && (
+          {(draftPlacement || draftBarragePlacement) && (
             <button onClick={clearCurrent} style={styles.secondaryBtn}>Cancel Current</button>
           )}
           <button onClick={reset} style={styles.secondaryBtn}>Reset All</button>
@@ -114,6 +171,12 @@ export function LaunchPanel() {
             index={index}
             onDelayChange={(value) => updatePlacementLaunchTime(placement.id, value)}
             onRemove={() => removePlacement(placement.id)}
+            onUpdateBarrage={(patch) => updateBarragePlacement(placement.id, patch)}
+            onRegenerateSeed={placement.kind === 'barrage' ? () => {
+              updateBarragePlacement(placement.id, {
+                seed: `${placement.seed.slice(0, 16)}-${Date.now().toString(36).slice(-4)}`,
+              });
+            } : undefined}
             showQueueActions
           />
         ))}
@@ -132,6 +195,39 @@ export function LaunchPanel() {
             )}
           />
         )}
+
+        {draftBarragePlacement && (
+          <PlacementCard
+            placement={draftBarragePlacement}
+            index={placements.length + (draftPlacement ? 1 : 0)}
+            onDelayChange={() => {}}
+            onRemove={clearCurrent}
+            onUpdateBarrage={(patch) => {
+              if (patch.launchArea?.radiusKm !== undefined) {
+                placementStore.setBarrageLaunchRadiusKm(patch.launchArea.radiusKm);
+              }
+              if (patch.targetArea?.radiusKm !== undefined) {
+                placementStore.setBarrageTargetRadiusKm(patch.targetArea.radiusKm);
+              }
+              if (patch.count !== undefined) placementStore.setBarrageCount(patch.count);
+              if (patch.seed !== undefined) placementStore.setBarrageSeed(patch.seed);
+              if (patch.launchTimeS !== undefined) placementStore.setBarrageLaunchTimeS(patch.launchTimeS);
+              if (patch.launchTimingMode !== undefined) {
+                placementStore.setBarrageLaunchTimingMode(patch.launchTimingMode);
+              }
+              if (patch.launchWindowS !== undefined) {
+                placementStore.setBarrageLaunchWindowS(patch.launchWindowS);
+              }
+            }}
+            onRegenerateSeed={regenerateBarrageSeed}
+            showQueueActions={false}
+            footerAction={(
+              <button onClick={addCurrentBarragePlacement} style={styles.queueBtn}>
+                Queue Barrage
+              </button>
+            )}
+          />
+        )}
       </div>
     </div>
   );
@@ -142,6 +238,8 @@ function PlacementCard({
   index,
   onDelayChange,
   onRemove,
+  onUpdateBarrage,
+  onRegenerateSeed,
   showQueueActions,
   footerAction,
 }: {
@@ -149,9 +247,13 @@ function PlacementCard({
   index: number;
   onDelayChange: (value: number) => void;
   onRemove: () => void;
+  onUpdateBarrage?: (patch: Partial<Omit<PlannedBarragePlacement, 'id' | 'kind'>>) => void;
+  onRegenerateSeed?: () => void;
   showQueueActions: boolean;
   footerAction?: React.ReactNode;
 }) {
+  const [expanded, setExpanded] = useState(false);
+
   if (placement.kind === 'asset') {
     const config = getDefenseAssetConfig(placement.assetId);
 
@@ -176,6 +278,122 @@ function PlacementCard({
           <Stat label="Lat" value={placement.position.lat.toFixed(2)} />
           <Stat label="Lon" value={placement.position.lon.toFixed(2)} />
         </div>
+
+        {footerAction && <div style={styles.cardFooter}>{footerAction}</div>}
+      </div>
+    );
+  }
+
+  if (placement.kind === 'barrage') {
+    const config = getMissileTypeConfig(placement.missileType);
+    const previewMembers = getBarragePreviewMembers(placement, Math.min(placement.count, 5));
+
+    return (
+      <div style={styles.card}>
+        <div style={styles.cardHeader}>
+          <div>
+            <div style={{ ...styles.cardTitle, color: config.cssColor }}>
+              {config.label} Barrage
+            </div>
+            <div style={styles.cardMeta}>
+              Group {index + 1} // {placement.count} launches // {placement.launchTimingMode.toUpperCase()}
+            </div>
+          </div>
+          <button onClick={onRemove} style={styles.removeBtn}>
+            {showQueueActions ? 'Remove' : 'Discard'}
+          </button>
+        </div>
+
+        <div style={styles.stats}>
+          <Stat label="Launch Area" value={`${placement.launchArea.radiusKm.toFixed(0)} km`} />
+          <Stat label="Target Area" value={`${placement.targetArea.radiusKm.toFixed(0)} km`} />
+          <Stat label="Seed" value={placement.seed || 'auto'} />
+        </div>
+
+        <div style={styles.barrageControls}>
+          <label style={styles.delayField}>
+            <span style={styles.delayLabel}>Start Delay (s)</span>
+            <input
+              type="number"
+              min={0}
+              step={1}
+              value={placement.launchTimeS}
+              onChange={(e) => onUpdateBarrage?.({ launchTimeS: parseFloat(e.target.value) || 0 })}
+              style={styles.delayInput}
+            />
+          </label>
+          <label style={styles.delayField}>
+            <span style={styles.delayLabel}>Count</span>
+            <input
+              type="number"
+              min={1}
+              max={48}
+              step={1}
+              value={placement.count}
+              onChange={(e) => onUpdateBarrage?.({ count: parseFloat(e.target.value) || 1 })}
+              style={styles.delayInput}
+            />
+          </label>
+          <label style={styles.delayField}>
+            <span style={styles.delayLabel}>Timing Mode</span>
+            <select
+              value={placement.launchTimingMode}
+              onChange={(e) => onUpdateBarrage?.({ launchTimingMode: e.target.value as BarrageLaunchTimingMode })}
+              style={styles.selectInput}
+            >
+              <option value="simultaneous">Simultaneous</option>
+              <option value="staggered">Staggered</option>
+              <option value="random_window">Random Window</option>
+            </select>
+          </label>
+        </div>
+
+        <div style={styles.barrageControls}>
+          <label style={styles.delayField}>
+            <span style={styles.delayLabel}>Window (s)</span>
+            <input
+              type="number"
+              min={0}
+              step={1}
+              value={placement.launchWindowS}
+              onChange={(e) => onUpdateBarrage?.({ launchWindowS: parseFloat(e.target.value) || 0 })}
+              style={styles.delayInput}
+            />
+          </label>
+          <label style={{ ...styles.delayField, gridColumn: 'span 2' }}>
+            <span style={styles.delayLabel}>Seed</span>
+            <div style={styles.seedRow}>
+              <input
+                type="text"
+                value={placement.seed}
+                onChange={(e) => onUpdateBarrage?.({ seed: e.target.value })}
+                style={styles.delayInput}
+              />
+              <button onClick={onRegenerateSeed} style={styles.inlineBtn}>Regenerate</button>
+            </div>
+          </label>
+        </div>
+
+        <div style={styles.barrageSummaryRow}>
+          <button onClick={() => setExpanded((value) => !value)} style={styles.inlineBtn}>
+            {expanded ? 'Hide Preview' : 'Preview Members'}
+          </button>
+          <span style={styles.previewMeta}>
+            {previewMembers.length} sampled trajectories from deterministic seed
+          </span>
+        </div>
+
+        {expanded && (
+          <div style={styles.previewList}>
+            {previewMembers.map((member, memberIndex) => (
+              <div key={member.id} style={styles.previewRow}>
+                <span>{memberIndex + 1}. {member.origin.lat.toFixed(1)}, {member.origin.lon.toFixed(1)}</span>
+                <span>{member.target.lat.toFixed(1)}, {member.target.lon.toFixed(1)}</span>
+                <span>T+{member.launchTimeS.toFixed(1)}s</span>
+              </div>
+            ))}
+          </div>
+        )}
 
         {footerAction && <div style={styles.cardFooter}>{footerAction}</div>}
       </div>
@@ -269,7 +487,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   queue: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
     gap: 12,
   },
   card: {
@@ -299,6 +517,11 @@ const styles: Record<string, React.CSSProperties> = {
     textTransform: 'uppercase',
   },
   stats: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+    gap: 10,
+  },
+  barrageControls: {
     display: 'grid',
     gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
     gap: 10,
@@ -338,6 +561,17 @@ const styles: Record<string, React.CSSProperties> = {
     color: '#e2e8f0',
     padding: '6px 8px',
     fontSize: 12,
+    fontFamily: 'monospace',
+  },
+  selectInput: {
+    width: '100%',
+    background: 'rgba(255,255,255,0.04)',
+    border: '1px solid rgba(255,255,255,0.1)',
+    borderRadius: 4,
+    color: '#e2e8f0',
+    padding: '6px 8px',
+    fontSize: 12,
+    fontFamily: 'monospace',
   },
   cardFooter: {
     display: 'flex',
@@ -380,5 +614,48 @@ const styles: Record<string, React.CSSProperties> = {
     padding: '6px 8px',
     fontSize: 11,
     cursor: 'pointer',
+  },
+  seedRow: {
+    display: 'grid',
+    gridTemplateColumns: '1fr auto',
+    gap: 8,
+  },
+  inlineBtn: {
+    background: 'rgba(99,179,237,0.1)',
+    color: '#63b3ed',
+    border: '1px solid rgba(99,179,237,0.26)',
+    borderRadius: 6,
+    padding: '7px 10px',
+    fontSize: 11,
+    fontFamily: 'monospace',
+    cursor: 'pointer',
+  },
+  barrageSummaryRow: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 8,
+  },
+  previewMeta: {
+    color: '#718096',
+    fontSize: 10,
+    textTransform: 'uppercase',
+    letterSpacing: '0.08em',
+  },
+  previewList: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 6,
+    background: 'rgba(255,255,255,0.02)',
+    borderRadius: 6,
+    padding: '8px 10px',
+  },
+  previewRow: {
+    display: 'grid',
+    gridTemplateColumns: '1.25fr 1.25fr auto',
+    gap: 8,
+    color: '#cbd5e1',
+    fontSize: 11,
+    fontFamily: 'monospace',
   },
 };

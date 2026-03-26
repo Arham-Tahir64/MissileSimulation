@@ -142,3 +142,58 @@ describe('placementStore — defense asset flow', () => {
     expect(state.placements.filter((p) => p.kind === 'asset')).toHaveLength(1);
   });
 });
+
+describe('placementStore — barrage flow', () => {
+  beforeEach(() => { usePlacementStore.getState().reset(); });
+
+  it('selectBarrageType enters barrage launch-area placement', () => {
+    usePlacementStore.getState().selectBarrageType('ballistic_threat');
+    const state = usePlacementStore.getState();
+    expect(state.phase).toBe('placing_barrage_origin');
+    expect(state.barrageMissileType).toBe('ballistic_threat');
+  });
+
+  it('queues a barrage and returns to idle', () => {
+    const store = usePlacementStore.getState();
+    store.selectBarrageType('cruise_threat');
+    store.setBarrageLaunchCenter(origin);
+    store.setBarrageTargetCenter(target);
+    store.setBarrageCount(9);
+    store.setBarrageLaunchRadiusKm(60);
+    store.setBarrageTargetRadiusKm(35);
+    store.addCurrentBarragePlacement();
+
+    const state = usePlacementStore.getState();
+    expect(state.phase).toBe('idle');
+    expect(state.placements).toHaveLength(1);
+    expect(state.placements[0].kind).toBe('barrage');
+    if (state.placements[0].kind === 'barrage') {
+      expect(state.placements[0].count).toBe(9);
+      expect(state.placements[0].launchArea.radiusKm).toBe(60);
+      expect(state.placements[0].targetArea.radiusKm).toBe(35);
+    }
+  });
+
+  it('updateBarragePlacement updates queued barrage values', () => {
+    const store = usePlacementStore.getState();
+    store.selectBarrageType('ballistic_threat');
+    store.setBarrageLaunchCenter(origin);
+    store.setBarrageTargetCenter(target);
+    store.addCurrentBarragePlacement();
+    const barrage = usePlacementStore.getState().placements[0];
+
+    store.updateBarragePlacement(barrage.id, {
+      count: 12,
+      launchWindowS: 120,
+      seed: 'fixed-seed',
+    });
+
+    const updated = usePlacementStore.getState().placements[0];
+    expect(updated.kind).toBe('barrage');
+    if (updated.kind === 'barrage') {
+      expect(updated.count).toBe(12);
+      expect(updated.launchWindowS).toBe(120);
+      expect(updated.seed).toBe('fixed-seed');
+    }
+  });
+});

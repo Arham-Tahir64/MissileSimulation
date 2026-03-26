@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from 'react';
-import { usePlacementStore } from '../../store/placementStore';
+import { usePlacementStore, countPlacementAssets, countPlacementLaunches } from '../../store/placementStore';
 import { useScenarioStore } from '../../store/scenarioStore';
 import { useSimulationStore } from '../../store/simulationStore';
 import { formatSimTime } from '../../utils/timeUtils';
@@ -29,8 +29,8 @@ export function OverviewPage({
   }));
 
   const topAlerts = snapshot.alerts.slice(0, 4);
-  const queuedLaunches = placements.filter((placement) => placement.kind === 'missile').length;
-  const queuedAssets = placements.filter((placement) => placement.kind === 'asset').length;
+  const queuedLaunches = countPlacementLaunches(placements);
+  const queuedAssets = countPlacementAssets(placements);
 
   const [saveOpen, setSaveOpen] = useState(false);
   const [saveName, setSaveName] = useState('');

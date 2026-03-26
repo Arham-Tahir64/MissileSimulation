@@ -60,7 +60,7 @@ const DEFAULT_EXPERIMENTAL_GLOBE_LAYERS: ExperimentalGlobeLayerState = {
   jammingZones: true,
   taskingLines: true,
   missileExhaust: true,
-  advancedLighting: false,
+  advancedLighting: true,
 };
 
 export const useDashboardStore = create<DashboardStore>()(

@@ -33,11 +33,28 @@ function pickGlobePosition(
  * Extending for new interaction modes: add cases to the phase switch below.
  */
 export function GlobeClickHandler({ viewer }: Props) {
-  const { phase, missileType, origin, setOrigin, setTarget, addAssetPlacement } = usePlacementStore();
+  const {
+    phase,
+    missileType,
+    origin,
+    setOrigin,
+    setTarget,
+    addAssetPlacement,
+    setBarrageLaunchCenter,
+    setBarrageTargetCenter,
+  } = usePlacementStore();
 
   useEffect(() => {
     if (!viewer) return;
-    if (phase !== 'placing_origin' && phase !== 'origin_set' && phase !== 'placing_asset') return;
+    if (
+      phase !== 'placing_origin'
+      && phase !== 'origin_set'
+      && phase !== 'placing_asset'
+      && phase !== 'placing_barrage_origin'
+      && phase !== 'barrage_origin_set'
+    ) {
+      return;
+    }
 
     const handler = new Cesium.ScreenSpaceEventHandler(viewer.canvas);
 
@@ -48,6 +65,16 @@ export function GlobeClickHandler({ viewer }: Props) {
 
         if (phase === 'placing_asset') {
           addAssetPlacement(pos);
+          return;
+        }
+
+        if (phase === 'placing_barrage_origin') {
+          setBarrageLaunchCenter(pos);
+          return;
+        }
+
+        if (phase === 'barrage_origin_set') {
+          setBarrageTargetCenter(pos);
           return;
         }
 
@@ -69,7 +96,17 @@ export function GlobeClickHandler({ viewer }: Props) {
     );
 
     return () => handler.destroy();
-  }, [viewer, phase, missileType, origin, setOrigin, setTarget, addAssetPlacement]);
+  }, [
+    viewer,
+    phase,
+    missileType,
+    origin,
+    setOrigin,
+    setTarget,
+    addAssetPlacement,
+    setBarrageLaunchCenter,
+    setBarrageTargetCenter,
+  ]);
 
   return null;
 }

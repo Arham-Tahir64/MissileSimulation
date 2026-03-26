@@ -3,6 +3,7 @@ import * as Cesium from 'cesium';
 import { usePlacementStore } from '../../store/placementStore';
 import { getMissileTypeConfig } from '../../config/missileTypes';
 import { getDefenseAssetConfig } from '../../config/defenseAssets';
+import { getBarragePreviewMembers } from '../../utils/barrageUtils';
 import {
   geoToCartesian,
   entityColor,
@@ -30,9 +31,26 @@ export function PlacementMarkerLayer({ viewer }: Props) {
   const originRef = useRef<Cesium.Entity | null>(null);
   const targetRef = useRef<Cesium.Entity | null>(null);
   const arcRef    = useRef<Cesium.Entity | null>(null);
+  const barrageRef = useRef<Cesium.Entity[]>([]);
   const assetMapRef = useRef<Map<string, Cesium.Entity>>(new Map());
 
-  const { origin, target, missileType, phase, placements } = usePlacementStore();
+  const {
+    origin,
+    target,
+    missileType,
+    phase,
+    placements,
+    barrageMissileType,
+    barrageLaunchCenter,
+    barrageLaunchRadiusKm,
+    barrageTargetCenter,
+    barrageTargetRadiusKm,
+    barrageCount,
+    barrageSeed,
+    barrageLaunchTimingMode,
+    barrageLaunchTimeS,
+    barrageLaunchWindowS,
+  } = usePlacementStore();
 
   const isVisible = phase !== 'idle' && phase !== 'simulating';
 
@@ -148,6 +166,170 @@ export function PlacementMarkerLayer({ viewer }: Props) {
     };
   }, [viewer, origin, target, missileType, isVisible]);
 
+  // ── Barrage draft preview ───────────────────────────────────────────────
+  useEffect(() => {
+    if (!viewer) return;
+
+    for (const entity of barrageRef.current) viewer.entities.remove(entity);
+    barrageRef.current = [];
+
+    if (
+      !isVisible
+      || !barrageMissileType
+      || !barrageLaunchCenter
+      || (phase !== 'barrage_origin_set' && phase !== 'barrage_target_set')
+    ) {
+      return;
+    }
+
+    const color = entityColor(barrageMissileType);
+    const launchCenter = geoToCartesian(barrageLaunchCenter);
+
+    barrageRef.current.push(
+      viewer.entities.add({
+        id: 'barrage_launch_ring',
+        position: launchCenter,
+        ellipse: {
+          semiMajorAxis: barrageLaunchRadiusKm * 1000,
+          semiMinorAxis: barrageLaunchRadiusKm * 1000,
+          material: color.withAlpha(0.06),
+          outline: true,
+          outlineColor: color.withAlpha(0.65),
+          outlineWidth: 2,
+          heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+        },
+        label: {
+          text: `LAUNCH AREA // ${barrageLaunchRadiusKm.toFixed(0)} KM`,
+          font: 'bold 11px monospace',
+          fillColor: color,
+          outlineColor: Cesium.Color.BLACK,
+          outlineWidth: 3,
+          style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+          pixelOffset: new Cesium.Cartesian2(0, -28),
+          disableDepthTestDistance: Number.POSITIVE_INFINITY,
+        },
+      }),
+    );
+
+    if (!barrageTargetCenter) {
+      return () => {
+        for (const entity of barrageRef.current) viewer.entities.remove(entity);
+        barrageRef.current = [];
+      };
+    }
+
+    const targetCenter = geoToCartesian(barrageTargetCenter);
+    barrageRef.current.push(
+      viewer.entities.add({
+        id: 'barrage_target_ring',
+        position: targetCenter,
+        ellipse: {
+          semiMajorAxis: barrageTargetRadiusKm * 1000,
+          semiMinorAxis: barrageTargetRadiusKm * 1000,
+          material: Cesium.Color.WHITE.withAlpha(0.035),
+          outline: true,
+          outlineColor: Cesium.Color.WHITE.withAlpha(0.55),
+          outlineWidth: 2,
+          heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+        },
+        label: {
+          text: `TARGET AREA // ${barrageTargetRadiusKm.toFixed(0)} KM`,
+          font: 'bold 11px monospace',
+          fillColor: Cesium.Color.WHITE,
+          outlineColor: Cesium.Color.BLACK,
+          outlineWidth: 3,
+          style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+          pixelOffset: new Cesium.Cartesian2(0, -28),
+          disableDepthTestDistance: Number.POSITIVE_INFINITY,
+        },
+      }),
+    );
+
+    const previewPlacement = {
+      id: 'draft-barrage',
+      kind: 'barrage' as const,
+      missileType: barrageMissileType,
+      launchArea: { center: barrageLaunchCenter, radiusKm: barrageLaunchRadiusKm },
+      targetArea: { center: barrageTargetCenter, radiusKm: barrageTargetRadiusKm },
+      count: barrageCount,
+      seed: barrageSeed,
+      launchTimingMode: barrageLaunchTimingMode,
+      launchTimeS: barrageLaunchTimeS,
+      launchWindowS: barrageLaunchWindowS,
+    };
+    const previewMembers = getBarragePreviewMembers(previewPlacement, Math.min(6, barrageCount));
+
+    for (const member of previewMembers) {
+      const cfg = getMissileTypeConfig(member.missileType);
+      const positions = cfg.trajectoryType === 'ballistic'
+        ? geoArrayToCartesian3Array(
+          computeBallisticArc(member.origin, member.target, cfg.apogeeAltM, 48),
+        )
+        : [
+          geoToCartesian({ ...member.origin, alt: cfg.apogeeAltM }),
+          geoToCartesian({ ...member.target, alt: cfg.apogeeAltM }),
+        ];
+
+      barrageRef.current.push(
+        viewer.entities.add({
+          polyline: {
+            positions,
+            width: 1.5,
+            material: new Cesium.PolylineDashMaterialProperty({
+              color: color.withAlpha(0.45),
+              dashLength: 10,
+            }),
+            clampToGround: false,
+          },
+        }),
+      );
+    }
+
+    barrageRef.current.push(
+      viewer.entities.add({
+        position: launchCenter,
+        point: {
+          pixelSize: 12,
+          color,
+          outlineColor: Cesium.Color.WHITE.withAlpha(0.55),
+          outlineWidth: 2,
+          disableDepthTestDistance: Number.POSITIVE_INFINITY,
+        },
+        label: {
+          text: `${barrageCount}x`,
+          font: 'bold 12px monospace',
+          fillColor: color,
+          outlineColor: Cesium.Color.BLACK,
+          outlineWidth: 3,
+          style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+          pixelOffset: new Cesium.Cartesian2(22, -2),
+          disableDepthTestDistance: Number.POSITIVE_INFINITY,
+        },
+      }),
+    );
+
+    return () => {
+      if (!viewer.isDestroyed()) {
+        for (const entity of barrageRef.current) viewer.entities.remove(entity);
+        barrageRef.current = [];
+      }
+    };
+  }, [
+    viewer,
+    isVisible,
+    barrageMissileType,
+    barrageLaunchCenter,
+    barrageLaunchRadiusKm,
+    barrageTargetCenter,
+    barrageTargetRadiusKm,
+    barrageCount,
+    barrageSeed,
+    barrageLaunchTimingMode,
+    barrageLaunchTimeS,
+    barrageLaunchWindowS,
+    phase,
+  ]);
+
   // ── Queued defense asset markers ────────────────────────────────────────
   useEffect(() => {
     if (!viewer) return;
@@ -212,6 +394,8 @@ export function PlacementMarkerLayer({ viewer }: Props) {
       if (!viewer) return;
       for (const entity of assetMapRef.current.values()) viewer.entities.remove(entity);
       assetMapRef.current.clear();
+      for (const entity of barrageRef.current) viewer.entities.remove(entity);
+      barrageRef.current = [];
     };
   }, [viewer]);
 
