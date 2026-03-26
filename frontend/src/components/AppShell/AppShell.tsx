@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, type ReactNode } from 'react';
 import { TopNav } from './TopNav';
 import { OverviewPage } from './OverviewPage';
 import { MonitorPage } from './MonitorPage';
@@ -33,15 +33,26 @@ export function AppShell() {
     currentPage,
     monitorSection,
     layers,
+    experimentalGlobeLayers,
     density,
     reduceMotion,
     setCurrentPage,
     setMonitorSection,
     setLayerVisibility,
+    setExperimentalGlobeLayer,
     setDensity,
     setReduceMotion,
   } = useDashboardStore();
-  const { simTimeS, status, connectionStatus, entities, events, scenarioId, reset: resetSimulation } = useSimulationStore();
+  const {
+    simTimeS,
+    status,
+    connectionStatus,
+    entities,
+    events,
+    scenarioId,
+    hasStateFrame,
+    reset: resetSimulation,
+  } = useSimulationStore();
   const { activeScenario, setActiveScenario } = useScenarioStore();
   const { durationS, isPlaying, speed, setDuration, setPlaying, clearBookmarks } = usePlaybackStore();
   const { seek } = usePlayback();
@@ -68,6 +79,30 @@ export function AppShell() {
 
   const selectedTrackId = snapshot.selection.kind === 'track' ? snapshot.selection.entity?.id ?? null : null;
   const selectedAssetId = snapshot.selection.kind === 'asset' ? snapshot.selection.entity?.id ?? null : null;
+  const awaitingInitialState = status !== 'idle' && !hasStateFrame;
+
+  const navigateToPage = (page: typeof currentPage) => {
+    setCurrentPage(page);
+
+    if (page === 'monitor') {
+      return;
+    }
+
+    setMode('tactical');
+    setHudExpanded(false);
+    setTrackedEntityId(null);
+
+    const viewer = getViewer();
+    if (viewer && activeScenario && page !== 'replay') {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          if (!viewer.isDestroyed()) {
+            flyToScenario(viewer, activeScenario);
+          }
+        });
+      });
+    }
+  };
 
   const selectTrack = (trackId: string, preset: 'wide' | 'chase' = 'wide') => {
     setTrackedEntityId(trackId);
@@ -129,16 +164,23 @@ export function AppShell() {
     });
   };
 
-  const openMonitor = () => setCurrentPage('monitor');
-  const openReplay = () => setCurrentPage('replay');
+  const openMonitor = () => navigateToPage('monitor');
+  const openReplay = () => navigateToPage('replay');
   const handleGlobeView = () => {
-    setCurrentPage('monitor');
+    navigateToPage('monitor');
     setMode('tactical');
     setHudExpanded(false);
+    setTrackedEntityId(null);
 
     const viewer = getViewer();
     if (viewer && activeScenario) {
-      flyToScenario(viewer, activeScenario);
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          if (!viewer.isDestroyed()) {
+            flyToScenario(viewer, activeScenario);
+          }
+        });
+      });
     }
   };
 
@@ -166,6 +208,75 @@ export function AppShell() {
     }
   };
 
+  let pageContent: ReactNode = null;
+
+  if (awaitingInitialState && currentPage !== 'archive') {
+    pageContent = <LoadingSurface page={currentPage} status={status} />;
+  } else if (currentPage === 'overview') {
+    pageContent = (
+      <OverviewPage
+        snapshot={snapshot}
+        onGoToMonitor={() => {
+          setCurrentPage('monitor');
+          setMonitorSection('tracks');
+        }}
+        onGoToReplay={() => navigateToPage('replay')}
+        onSelectAlert={handleSelectAlert}
+      />
+    );
+  } else if (currentPage === 'monitor') {
+    pageContent = (
+      <MonitorPage
+        snapshot={snapshot}
+        monitorSection={monitorSection}
+        setMonitorSection={setMonitorSection}
+        selectedTrackId={selectedTrackId}
+        selectedAssetId={selectedAssetId}
+        detailOpen={isHudExpanded}
+        onSelectTrack={selectTrack}
+        onSelectAsset={selectAsset}
+        onSelectAlert={handleSelectAlert}
+        onOpenReplay={openReplay}
+        onOpenSettings={() => setCurrentPage('settings')}
+        onToggleDetail={() => setHudExpanded(!isHudExpanded)}
+      />
+    );
+  } else if (currentPage === 'replay') {
+    pageContent = (
+      <ReplayPage
+        snapshot={snapshot}
+        isPlaying={isPlaying}
+        status={status}
+        speed={speed}
+        simTimeS={simTimeS}
+        durationS={durationS}
+        fraction={timeToFraction(simTimeS, durationS)}
+        markers={snapshot.markers}
+        showAlerts={layers.alerts}
+        onSelectAlert={handleSelectAlert}
+        onSelectMarker={handleSelectMarker}
+        onGoToMonitor={openMonitor}
+      />
+    );
+  } else if (currentPage === 'analysis') {
+    pageContent = <AnalysisPage snapshot={snapshot} />;
+  } else if (currentPage === 'archive') {
+    pageContent = <RunArchivePage onOpenReplay={handleOpenArchivedReplay} />;
+  } else if (currentPage === 'settings') {
+    pageContent = (
+      <SettingsPage
+        layers={layers}
+        experimentalGlobeLayers={experimentalGlobeLayers}
+        density={density}
+        reduceMotion={reduceMotion}
+        onToggleLayer={setLayerVisibility}
+        onToggleExperimentalGlobeLayer={setExperimentalGlobeLayer}
+        onDensityChange={setDensity}
+        onReduceMotionChange={setReduceMotion}
+      />
+    );
+  }
+
   return (
     <div style={{
       ...styles.shell,
@@ -186,7 +297,7 @@ export function AppShell() {
 
       <TopNav
         currentPage={currentPage}
-        onNavigate={setCurrentPage}
+        onNavigate={navigateToPage}
         onGlobeView={handleGlobeView}
         scenarioLabel={snapshot.scenarioLabel}
         sessionLabel={snapshot.sessionLabel}
@@ -195,66 +306,28 @@ export function AppShell() {
         showGlobeView={Boolean(activeScenario)}
       />
 
-      {currentPage === 'overview' && (
-        <OverviewPage
-          snapshot={snapshot}
-          onGoToMonitor={() => {
-            setCurrentPage('monitor');
-            setMonitorSection('tracks');
-          }}
-          onGoToReplay={() => setCurrentPage('replay')}
-          onSelectAlert={handleSelectAlert}
-        />
-      )}
+      {pageContent}
+    </div>
+  );
+}
 
-      {currentPage === 'monitor' && (
-        <MonitorPage
-          snapshot={snapshot}
-          monitorSection={monitorSection}
-          setMonitorSection={setMonitorSection}
-          selectedTrackId={selectedTrackId}
-          selectedAssetId={selectedAssetId}
-          detailOpen={isHudExpanded}
-          onSelectTrack={selectTrack}
-          onSelectAsset={selectAsset}
-          onSelectAlert={handleSelectAlert}
-          onOpenReplay={openReplay}
-          onOpenSettings={() => setCurrentPage('settings')}
-          onToggleDetail={() => setHudExpanded(!isHudExpanded)}
-        />
-      )}
-
-      {currentPage === 'replay' && (
-        <ReplayPage
-          snapshot={snapshot}
-          isPlaying={isPlaying}
-          status={status}
-          speed={speed}
-          simTimeS={simTimeS}
-          durationS={durationS}
-          fraction={timeToFraction(simTimeS, durationS)}
-          markers={snapshot.markers}
-          showAlerts={layers.alerts}
-          onSelectAlert={handleSelectAlert}
-          onSelectMarker={handleSelectMarker}
-          onGoToMonitor={openMonitor}
-        />
-      )}
-
-      {currentPage === 'analysis' && <AnalysisPage snapshot={snapshot} />}
-
-      {currentPage === 'archive' && <RunArchivePage onOpenReplay={handleOpenArchivedReplay} />}
-
-      {currentPage === 'settings' && (
-        <SettingsPage
-          layers={layers}
-          density={density}
-          reduceMotion={reduceMotion}
-          onToggleLayer={setLayerVisibility}
-          onDensityChange={setDensity}
-          onReduceMotionChange={setReduceMotion}
-        />
-      )}
+function LoadingSurface({
+  page,
+  status,
+}: {
+  page: string;
+  status: string;
+}) {
+  return (
+    <div style={loadingStyles.wrap}>
+      <div style={loadingStyles.card}>
+        <div style={loadingStyles.kicker}>{page.toUpperCase()}_PREP</div>
+        <div style={loadingStyles.title}>Hydrating scenario state…</div>
+        <div style={loadingStyles.copy}>
+          The shell is ready, but the first paused frame has not arrived yet. This view will unlock as soon as the scenario state is available.
+        </div>
+        <div style={loadingStyles.status}>STATUS // {status.toUpperCase()}</div>
+      </div>
     </div>
   );
 }
@@ -272,5 +345,48 @@ const styles: Record<string, React.CSSProperties> = {
     position: 'absolute',
     inset: 0,
     background: 'linear-gradient(180deg, rgba(6,9,12,0.72) 0%, rgba(6,9,12,0.46) 28%, rgba(6,9,12,0.34) 62%, rgba(6,9,12,0.72) 100%)',
+  },
+};
+
+const loadingStyles: Record<string, React.CSSProperties> = {
+  wrap: {
+    position: 'absolute',
+    inset: '96px 20px 24px 20px',
+    display: 'grid',
+    placeItems: 'center',
+    pointerEvents: 'none',
+  },
+  card: {
+    width: 'min(540px, 100%)',
+    padding: '28px 32px',
+    border: '1px solid rgba(0, 229, 255, 0.2)',
+    background: 'linear-gradient(180deg, rgba(8,12,18,0.9), rgba(8,12,18,0.72))',
+    boxShadow: '0 18px 42px rgba(0, 0, 0, 0.34)',
+    color: '#dfe2eb',
+  },
+  kicker: {
+    fontFamily: "'IBM Plex Mono', ui-monospace, monospace",
+    letterSpacing: '0.18em',
+    fontSize: 11,
+    color: 'rgba(0, 229, 255, 0.78)',
+    marginBottom: 14,
+  },
+  title: {
+    fontFamily: "'Space Grotesk', 'Inter', sans-serif",
+    fontSize: 28,
+    lineHeight: 1.05,
+    marginBottom: 12,
+  },
+  copy: {
+    color: 'rgba(223, 226, 235, 0.72)',
+    lineHeight: 1.6,
+    fontSize: 14,
+  },
+  status: {
+    marginTop: 18,
+    fontFamily: "'IBM Plex Mono', ui-monospace, monospace",
+    letterSpacing: '0.16em',
+    fontSize: 11,
+    color: 'rgba(255, 198, 113, 0.9)',
   },
 };

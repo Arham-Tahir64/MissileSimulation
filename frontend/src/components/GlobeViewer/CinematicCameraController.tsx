@@ -36,6 +36,7 @@ export function CinematicCameraController({ viewer }: Props) {
   const presetRef = useRef(followPreset);
   const rigRef = useRef<CameraRigState | null>(null);
   const inspectedAssetIdRef = useRef<string | null>(null);
+  const releasedMissingTargetRef = useRef(false);
 
   useEffect(() => {
     trackedEntityRef.current = trackedEntity;
@@ -68,10 +69,24 @@ export function CinematicCameraController({ viewer }: Props) {
       const entity = trackedEntityRef.current;
       const currentMode = modeRef.current;
 
-      if (!entity || currentMode !== 'follow' || !isMovingRuntimeEntity(entity)) {
+      if (currentMode !== 'follow') {
         rigRef.current = null;
+        releasedMissingTargetRef.current = false;
         return;
       }
+
+      if (!entity || !isMovingRuntimeEntity(entity)) {
+        rigRef.current = null;
+        if (!releasedMissingTargetRef.current) {
+          viewer.camera.lookAtTransform(Cesium.Matrix4.IDENTITY);
+          screenController.enableInputs = true;
+          releasedMissingTargetRef.current = true;
+        }
+        return;
+      }
+
+      releasedMissingTargetRef.current = false;
+      screenController.enableInputs = false;
 
       const desiredRig = createChaseRig(entity, presetRef.current);
 

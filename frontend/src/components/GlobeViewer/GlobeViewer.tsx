@@ -27,7 +27,8 @@ export function GlobeViewer() {
   const rawId = useId();
   const containerId = `cesium-globe-${rawId.replace(/:/g, '')}`;
 
-  const viewer = useViewer(containerId);
+  const experimentalGlobeLayers = useDashboardStore((s) => s.experimentalGlobeLayers);
+  const viewer = useViewer(containerId, experimentalGlobeLayers.advancedLighting);
 
   const entities       = useSimulationStore((s) => s.entities);
   const activeScenario = useScenarioStore((s) => s.activeScenario);
@@ -48,9 +49,14 @@ export function GlobeViewer() {
     assetOverlays:  layers.assetOverlays  && onActiveSimPage,
     labels:         layers.labels         && currentPage === 'monitor',
     rangeRings:     layers.rangeRings     && currentPage === 'monitor',
-    trackTrails:    onActiveSimPage,
-    bdaMarkers:     onActiveSimPage,
-    radarSweeps:    layers.rangeRings     && onActiveSimPage,
+    trackHistory:   experimentalGlobeLayers.trackHistory && onActiveSimPage,
+    bdaMarkers:     experimentalGlobeLayers.bdaMarkers && onActiveSimPage,
+    radarSweeps:    experimentalGlobeLayers.radarSweeps && onActiveSimPage,
+    saturationHighlights: experimentalGlobeLayers.saturationHighlights && onActiveSimPage,
+    reentryFootprints: experimentalGlobeLayers.reentryFootprints && onActiveSimPage,
+    jammingZones:   experimentalGlobeLayers.jammingZones && onActiveSimPage,
+    taskingLines:   experimentalGlobeLayers.taskingLines && onActiveSimPage,
+    missileExhaust: experimentalGlobeLayers.missileExhaust && onActiveSimPage,
   };
 
   return (
@@ -86,14 +92,14 @@ export function GlobeViewer() {
       {effectiveLayers.trajectories && (
         <InterceptorTrajectoryLayer viewer={viewer} />
       )}
-      {effectiveLayers.trackTrails  && <TrackHistoryLayer       viewer={viewer} />}
-      {effectiveLayers.bdaMarkers   && <BdaMarkerLayer          viewer={viewer} />}
-      {effectiveLayers.radarSweeps  && <RadarSweepLayer         viewer={viewer} />}
-      {onActiveSimPage              && <SaturationHighlightLayer  viewer={viewer} />}
-      {onActiveSimPage              && <ReentryFootprintLayer     viewer={viewer} />}
-      {onActiveSimPage              && <JammingZoneLayer          viewer={viewer} />}
-      {onActiveSimPage              && <TaskingLineLayer          viewer={viewer} />}
-      {onActiveSimPage              && <MissileExhaustLayer       viewer={viewer} />}
+      {effectiveLayers.trackHistory && <TrackHistoryLayer viewer={viewer} />}
+      {effectiveLayers.bdaMarkers && <BdaMarkerLayer viewer={viewer} />}
+      {effectiveLayers.radarSweeps && <RadarSweepLayer viewer={viewer} />}
+      {effectiveLayers.saturationHighlights && <SaturationHighlightLayer viewer={viewer} />}
+      {effectiveLayers.reentryFootprints && <ReentryFootprintLayer viewer={viewer} />}
+      {effectiveLayers.jammingZones && <JammingZoneLayer viewer={viewer} />}
+      {effectiveLayers.taskingLines && <TaskingLineLayer viewer={viewer} />}
+      {effectiveLayers.missileExhaust && <MissileExhaustLayer viewer={viewer} />}
 
       {/* ── Interactive placement layers ───────────────────────────── */}
       <GlobeClickHandler viewer={viewer} />

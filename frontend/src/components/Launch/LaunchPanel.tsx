@@ -2,6 +2,7 @@ import { usePlacementStore, PlannedPlacement, PlannedLaunchPlacement } from '../
 import { useScenarioStore } from '../../store/scenarioStore';
 import { usePlaybackStore } from '../../store/playbackStore';
 import { useCameraStore } from '../../store/cameraStore';
+import { useSimulationStore } from '../../store/simulationStore';
 import { wsClient } from '../../services/wsClient';
 import { buildScenario } from '../../utils/scenarioBuilder';
 import { getMissileTypeConfig, estimateFlightTimeS } from '../../config/missileTypes';
@@ -26,6 +27,7 @@ export function LaunchPanel() {
   } = usePlacementStore();
   const { setActiveScenario } = useScenarioStore();
   const { setDuration, setPlaying } = usePlaybackStore();
+  const resetSimulation = useSimulationStore((s) => s.reset);
   const primeFollow = useCameraStore((s) => s.primeFollow);
   const setMode = useCameraStore((s) => s.setMode);
   const setTrackedEntityId = useCameraStore((s) => s.setTrackedEntityId);
@@ -67,6 +69,7 @@ export function LaunchPanel() {
     setActiveScenario(scenario);
     setDuration(scenario.metadata.duration_s);
     setPlaying(true);
+    resetSimulation();
     if (firstTrackableEntity) {
       primeFollow(firstTrackableEntity);
     } else {

@@ -13,7 +13,7 @@ const DEFAULT_VIEW = Cesium.Rectangle.fromDegrees(-145, -28, 110, 62);
  * Returns the viewer instance via useState so that dependent components re-render
  * once Cesium is ready (useRef would not trigger a re-render).
  */
-export function useViewer(containerId: string): Cesium.Viewer | null {
+export function useViewer(containerId: string, advancedLighting = false): Cesium.Viewer | null {
   const [viewer, setViewer] = useState<Cesium.Viewer | null>(null);
 
   useEffect(() => {
@@ -41,21 +41,22 @@ export function useViewer(containerId: string): Cesium.Viewer | null {
     v.scene.globe.showGroundAtmosphere = true;
     v.scene.globe.depthTestAgainstTerrain = true;
     v.scene.fog.enabled = true;
-    v.scene.fog.density = 0.00012;
-
-    // Day/night terminator — use sun-based scene lighting
-    v.scene.light = new Cesium.SunLight();
-    if (v.scene.skyAtmosphere) {
-      v.scene.skyAtmosphere.show = true;
-      v.scene.skyAtmosphere.atmosphereLightIntensity = 12.0;
+    if (advancedLighting) {
+      v.scene.fog.density = 0.00012;
+      v.scene.light = new Cesium.SunLight();
+      if (v.scene.skyAtmosphere) {
+        v.scene.skyAtmosphere.show = true;
+        v.scene.skyAtmosphere.atmosphereLightIntensity = 12.0;
+      }
+      if (v.scene.sun) v.scene.sun.show = true;
+      if (v.scene.moon) v.scene.moon.show = true;
+      v.scene.globe.nightFadeOutDistance = 1.0e7;
+      v.scene.globe.nightFadeInDistance = 5.0e8;
+    } else {
+      if (v.scene.skyAtmosphere) v.scene.skyAtmosphere.show = true;
+      if (v.scene.sun) v.scene.sun.show = false;
+      if (v.scene.moon) v.scene.moon.show = false;
     }
-    // Show the sun disc and moon for spatial orientation
-    if (v.scene.sun) v.scene.sun.show = true;
-    if (v.scene.moon) v.scene.moon.show = true;
-
-    // Clamp globe night side so dark areas stay dark
-    v.scene.globe.nightFadeOutDistance = 1.0e7;
-    v.scene.globe.nightFadeInDistance  = 5.0e8;
 
     const resetToDefaultView = () => {
       if (v.isDestroyed()) return;
@@ -88,7 +89,7 @@ export function useViewer(containerId: string): Cesium.Viewer | null {
       v.destroy();
       setViewer(null);
     };
-  }, [containerId]);
+  }, [advancedLighting, containerId]);
 
   return viewer;
 }

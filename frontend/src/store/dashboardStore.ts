@@ -10,6 +10,18 @@ export interface LayerVisibilityState {
   rangeRings: boolean;
 }
 
+export interface ExperimentalGlobeLayerState {
+  trackHistory: boolean;
+  bdaMarkers: boolean;
+  radarSweeps: boolean;
+  saturationHighlights: boolean;
+  reentryFootprints: boolean;
+  jammingZones: boolean;
+  taskingLines: boolean;
+  missileExhaust: boolean;
+  advancedLighting: boolean;
+}
+
 export type DashboardPage = 'overview' | 'monitor' | 'replay' | 'analysis' | 'archive' | 'settings';
 export type MonitorSection = 'tracks' | 'assets' | 'alerts';
 export type DisplayDensity = 'comfortable' | 'compact';
@@ -18,11 +30,13 @@ interface DashboardStore {
   currentPage: DashboardPage;
   monitorSection: MonitorSection;
   layers: LayerVisibilityState;
+  experimentalGlobeLayers: ExperimentalGlobeLayerState;
   reduceMotion: boolean;
   density: DisplayDensity;
   setCurrentPage: (page: DashboardPage) => void;
   setMonitorSection: (section: MonitorSection) => void;
   setLayerVisibility: (layer: keyof LayerVisibilityState, value: boolean) => void;
+  setExperimentalGlobeLayer: (layer: keyof ExperimentalGlobeLayerState, value: boolean) => void;
   setReduceMotion: (value: boolean) => void;
   setDensity: (value: DisplayDensity) => void;
   reset: () => void;
@@ -37,12 +51,25 @@ const DEFAULT_LAYERS: LayerVisibilityState = {
   rangeRings: true,
 };
 
+const DEFAULT_EXPERIMENTAL_GLOBE_LAYERS: ExperimentalGlobeLayerState = {
+  trackHistory: true,
+  bdaMarkers: true,
+  radarSweeps: true,
+  saturationHighlights: true,
+  reentryFootprints: true,
+  jammingZones: true,
+  taskingLines: true,
+  missileExhaust: true,
+  advancedLighting: false,
+};
+
 export const useDashboardStore = create<DashboardStore>()(
   persist(
     (set) => ({
       currentPage: 'overview',
       monitorSection: 'tracks',
       layers: DEFAULT_LAYERS,
+      experimentalGlobeLayers: DEFAULT_EXPERIMENTAL_GLOBE_LAYERS,
       reduceMotion: false,
       density: 'comfortable',
 
@@ -57,6 +84,14 @@ export const useDashboardStore = create<DashboardStore>()(
           },
         })),
 
+      setExperimentalGlobeLayer: (layer, value) =>
+        set((state) => ({
+          experimentalGlobeLayers: {
+            ...state.experimentalGlobeLayers,
+            [layer]: value,
+          },
+        })),
+
       setReduceMotion: (reduceMotion) => set({ reduceMotion }),
       setDensity: (density) => set({ density }),
 
@@ -64,6 +99,7 @@ export const useDashboardStore = create<DashboardStore>()(
         currentPage: 'overview',
         monitorSection: 'tracks',
         layers: DEFAULT_LAYERS,
+        experimentalGlobeLayers: DEFAULT_EXPERIMENTAL_GLOBE_LAYERS,
         reduceMotion: false,
         density: 'comfortable',
       }),
@@ -73,6 +109,7 @@ export const useDashboardStore = create<DashboardStore>()(
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
         layers: state.layers,
+        experimentalGlobeLayers: state.experimentalGlobeLayers,
         reduceMotion: state.reduceMotion,
         density: state.density,
       }),

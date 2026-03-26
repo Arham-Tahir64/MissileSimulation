@@ -10,6 +10,7 @@ interface SimulationStore {
   simTimeS: number;
   status: SimulationStatus;
   connectionStatus: ConnectionStatus;
+  hasStateFrame: boolean;
   entities: EntityState[];
   events: RuntimeEvent[];
 
@@ -25,6 +26,7 @@ export const useSimulationStore = create<SimulationStore>((set) => ({
   simTimeS: 0,
   status: 'idle',
   connectionStatus: 'disconnected',
+  hasStateFrame: false,
   entities: [],
   events: [],
 
@@ -32,12 +34,13 @@ export const useSimulationStore = create<SimulationStore>((set) => ({
     const rewound = typeof patch.simTimeS === 'number' && patch.simTimeS + 0.001 < s.simTimeS;
     const scenarioChanged = typeof patch.scenarioId === 'string' && patch.scenarioId !== s.scenarioId;
 
-    return {
-      ...s,
-      ...patch,
-      events: rewound || scenarioChanged ? [] : s.events,
-    };
-  }),
+      return {
+        ...s,
+        ...patch,
+        hasStateFrame: typeof patch.hasStateFrame === 'boolean' ? patch.hasStateFrame : s.hasStateFrame,
+        events: rewound || scenarioChanged ? [] : s.events,
+      };
+    }),
 
   addEvent: (event) =>
     set((s) => (
@@ -55,6 +58,7 @@ export const useSimulationStore = create<SimulationStore>((set) => ({
       simTimeS: 0,
       status: 'idle',
       connectionStatus: 'disconnected',
+      hasStateFrame: false,
       entities: [],
       events: [],
     }),

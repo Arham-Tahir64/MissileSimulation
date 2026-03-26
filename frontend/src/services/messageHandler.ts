@@ -13,6 +13,7 @@ export function handleServerMessage(msg: ServerMessage): void {
         scenarioId: msg.scenario_id,
         simTimeS: msg.sim_time_s,
         status: msg.status,
+        hasStateFrame: true,
         entities: msg.entities,
       });
       if (msg.status === 'running') {

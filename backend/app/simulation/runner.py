@@ -66,6 +66,7 @@ class SimulationRunner:
             scenario=scenario,
             started_at_ms=int(time.time() * 1000),
         )
+        await self.push_snapshot(session_id)
 
     async def load(self, session_id: str, scenario_id: str) -> None:
         # Stop any running engine for this session
@@ -92,6 +93,7 @@ class SimulationRunner:
             scenario=scenario,
             started_at_ms=int(time.time() * 1000),
         )
+        await self.push_snapshot(session_id)
 
     async def play(self, session_id: str, speed: float = 1.0) -> None:
         session = self._sessions.get(session_id)
@@ -118,6 +120,18 @@ class SimulationRunner:
         session = self._sessions.get(session_id)
         if session:
             session.engine.set_speed(speed)
+
+    async def push_snapshot(self, session_id: str, target_time_s: float = 0.0) -> None:
+        session = self._sessions.get(session_id)
+        if session is None:
+            raise RuntimeError(f"No engine loaded for session '{session_id}'")
+
+        state_json = session.engine.seek(target_time_s)
+        self._capture_state(session_id, state_json)
+
+        callback = self._push_callbacks.get(session_id)
+        if callback is not None:
+            await callback(state_json)
 
     def list_saved_runs(self) -> list[RunSummary]:
         return self._archive.list_summaries()
