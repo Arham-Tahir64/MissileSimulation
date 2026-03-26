@@ -112,7 +112,14 @@ export function AlertFeedPanel({
                     <span style={styles.context}>{getAlertContextLabel(alert)}</span>
                   </div>
                   <div style={styles.subtitle}>{alert.subtitle}</div>
-                  <div style={styles.jumpHint}>OPEN_CONTEXT</div>
+                  <div style={styles.rowBottom}>
+                    <div style={styles.jumpHint}>OPEN_CONTEXT</div>
+                    {alert.pkScore !== null && (
+                      <span style={styles.pkBadge}>
+                        PK {(alert.pkScore * 100).toFixed(0)}%
+                      </span>
+                    )}
+                  </div>
                 </button>
               ))}
             </div>
@@ -298,12 +305,26 @@ const styles: Record<string, React.CSSProperties> = {
     marginTop: 6,
     lineHeight: 1.45,
   },
+  rowBottom: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 8,
+  },
   jumpHint: {
     color: hudTheme.faint,
     fontSize: 10,
     letterSpacing: '0.16em',
     textTransform: 'uppercase',
-    marginTop: 8,
+  },
+  pkBadge: {
+    fontFamily: "'IBM Plex Mono', ui-monospace, monospace",
+    fontSize: 10,
+    letterSpacing: '0.14em',
+    color: '#67d4ff',
+    background: 'rgba(0,229,255,0.1)',
+    border: '1px solid rgba(0,229,255,0.25)',
+    padding: '3px 7px',
   },
   empty: {
     padding: '18px 0 8px 0',

@@ -1,0 +1,384 @@
+{
+  "summary": {
+    "run_id": "run_1774483573890_6e3c8433",
+    "session_id": "archive_1774482908513",
+    "scenario_id": "custom_1774478930623",
+    "scenario_name": "Custom Scenario (5 entities)",
+    "scenario_description": "User-generated scenario",
+    "status": "completed",
+    "started_at_ms": 1774482908531,
+    "completed_at_ms": 1774483573890,
+    "duration_s": 646.0,
+    "final_sim_time_s": 646.0000000000783,
+    "event_count": 8,
+    "entity_count": 7,
+    "intercept_successes": 2,
+    "intercept_misses": 0
+  },
+  "scenario": {
+    "metadata": {
+      "id": "custom_1774478930623",
+      "name": "Custom Scenario (5 entities)",
+      "description": "User-generated scenario",
+      "duration_s": 646.0,
+      "tick_rate_hz": 10.0,
+      "threat_count": 2,
+      "interceptor_count": 1,
+      "tags": [
+        "custom",
+        "user-placed"
+      ]
+    },
+    "entities": [
+      {
+        "id": "TRK-1",
+        "type": "sensor",
+        "label": "Tracking Radar",
+        "designator": "TRK-1",
+        "trajectory_type": "stationary",
+        "origin": {
+          "lat": 31.654697423258277,
+          "lon": 44.30074074149118,
+          "alt": 0.0
+        },
+        "waypoints": null,
+        "target": null,
+        "launch_time_s": 0.0,
+        "speed_ms": null
+      },
+      {
+        "id": "EWR-2",
+        "type": "sensor",
+        "label": "Early Warning Radar",
+        "designator": "EWR-2",
+        "trajectory_type": "stationary",
+        "origin": {
+          "lat": 29.799691764046525,
+          "lon": 47.93252538954685,
+          "alt": 0.0
+        },
+        "waypoints": null,
+        "target": null,
+        "launch_time_s": 0.0,
+        "speed_ms": null
+      },
+      {
+        "id": "DS-3",
+        "type": "interceptor",
+        "label": "David's Sling Battery",
+        "designator": "DS-3",
+        "trajectory_type": "stationary",
+        "origin": {
+          "lat": 32.78446028960445,
+          "lon": 40.66624294517631,
+          "alt": 0.0
+        },
+        "waypoints": null,
+        "target": null,
+        "launch_time_s": 0.0,
+        "speed_ms": null
+      },
+      {
+        "id": "T-4",
+        "type": "ballistic_threat",
+        "label": "Ballistic Missile",
+        "designator": "T-4",
+        "trajectory_type": "ballistic",
+        "origin": {
+          "lat": 24.20667135134784,
+          "lon": 48.801208864952706,
+          "alt": 0.0
+        },
+        "waypoints": null,
+        "target": {
+          "lat": 35.64297407578329,
+          "lon": 39.34129596709195,
+          "alt": 0.0
+        },
+        "launch_time_s": 0.0,
+        "speed_ms": 2500.0
+      },
+      {
+        "id": "T-5",
+        "type": "ballistic_threat",
+        "label": "Ballistic Missile",
+        "designator": "T-5",
+        "trajectory_type": "ballistic",
+        "origin": {
+          "lat": 30.990062318891628,
+          "lon": 51.87175356075137,
+          "alt": 0.0
+        },
+        "waypoints": null,
+        "target": {
+          "lat": 34.32083306548425,
+          "lon": 42.44534356542383,
+          "alt": 0.0
+        },
+        "launch_time_s": 0.0,
+        "speed_ms": 2500.0
+      }
+    ],
+    "events": []
+  },
+  "final_state": {
+    "type": "sim_state",
+    "session_id": "archive_1774482908513",
+    "scenario_id": "custom_1774478930623",
+    "sim_time_s": 646.0000000000783,
+    "wall_time_ms": 1774483573890,
+    "status": "completed",
+    "entities": [
+      {
+        "id": "TRK-1",
+        "type": "sensor",
+        "status": "active",
+        "position": {
+          "lat": 31.654697423258277,
+          "lon": 44.30074074149118,
+          "alt": 0.0
+        },
+        "velocity_ms": 0.0,
+        "heading_deg": 0.0,
+        "pitch_deg": 0.0,
+        "sim_time_s": 646.0000000000783,
+        "trajectory_type": "stationary",
+        "label": "Tracking Radar",
+        "designator": "TRK-1",
+        "asset_status": "idle",
+        "current_target_id": null,
+        "detected_threat_ids": [],
+        "cooldown_remaining_s": null
+      },
+      {
+        "id": "EWR-2",
+        "type": "sensor",
+        "status": "active",
+        "position": {
+          "lat": 29.799691764046525,
+          "lon": 47.93252538954685,
+          "alt": 0.0
+        },
+        "velocity_ms": 0.0,
+        "heading_deg": 0.0,
+        "pitch_deg": 0.0,
+        "sim_time_s": 646.0000000000783,
+        "trajectory_type": "stationary",
+        "label": "Early Warning Radar",
+        "designator": "EWR-2",
+        "asset_status": "idle",
+        "current_target_id": null,
+        "detected_threat_ids": [],
+        "cooldown_remaining_s": null
+      },
+      {
+        "id": "DS-3",
+        "type": "interceptor",
+        "status": "active",
+        "position": {
+          "lat": 32.78446028960445,
+          "lon": 40.66624294517631,
+          "alt": 0.0
+        },
+        "velocity_ms": 0.0,
+        "heading_deg": 0.0,
+        "pitch_deg": 0.0,
+        "sim_time_s": 646.0000000000783,
+        "trajectory_type": "stationary",
+        "label": "David's Sling Battery",
+        "designator": "DS-3",
+        "asset_status": "idle",
+        "current_target_id": null,
+        "detected_threat_ids": [],
+        "cooldown_remaining_s": 0.0
+      },
+      {
+        "id": "T-4",
+        "type": "ballistic_threat",
+        "status": "intercepted",
+        "position": {
+          "lat": 35.64297407578329,
+          "lon": 39.34129596709195,
+          "alt": 0.0
+        },
+        "velocity_ms": 2500.0,
+        "heading_deg": 326.6317219008911,
+        "pitch_deg": -44.75217403393046,
+        "sim_time_s": 646.0000000000783,
+        "trajectory_type": "ballistic",
+        "label": "Ballistic Missile",
+        "designator": "T-4",
+        "asset_status": null,
+        "current_target_id": null,
+        "detected_threat_ids": [],
+        "cooldown_remaining_s": null
+      },
+      {
+        "id": "T-5",
+        "type": "ballistic_threat",
+        "status": "intercepted",
+        "position": {
+          "lat": 34.32083306548425,
+          "lon": 42.44534356542383,
+          "alt": 0.0
+        },
+        "velocity_ms": 2500.0,
+        "heading_deg": 295.26629863185553,
+        "pitch_deg": 25.105811838595013,
+        "sim_time_s": 646.0000000000783,
+        "trajectory_type": "ballistic",
+        "label": "Ballistic Missile",
+        "designator": "T-5",
+        "asset_status": null,
+        "current_target_id": null,
+        "detected_threat_ids": [],
+        "cooldown_remaining_s": null
+      },
+      {
+        "id": "DS-3-SHOT-1",
+        "type": "interceptor",
+        "status": "destroyed",
+        "position": {
+          "lat": 33.296110310003655,
+          "lon": 45.34541011446011,
+          "alt": 246874.29675803342
+        },
+        "velocity_ms": 2500.0,
+        "heading_deg": 81.29627656568204,
+        "pitch_deg": -39.750068135854896,
+        "sim_time_s": 646.0000000000783,
+        "trajectory_type": "ballistic",
+        "label": "David's Sling Battery Shot",
+        "designator": "DS-3-SHOT-1",
+        "asset_status": null,
+        "current_target_id": null,
+        "detected_threat_ids": [],
+        "cooldown_remaining_s": null
+      },
+      {
+        "id": "DS-3-SHOT-2",
+        "type": "interceptor",
+        "status": "destroyed",
+        "position": {
+          "lat": 30.11776397674293,
+          "lon": 43.91165472190382,
+          "alt": 299578.72248109087
+        },
+        "velocity_ms": 2500.0,
+        "heading_deg": 133.06845335198375,
+        "pitch_deg": -41.70228063416101,
+        "sim_time_s": 646.0000000000783,
+        "trajectory_type": "ballistic",
+        "label": "David's Sling Battery Shot",
+        "designator": "DS-3-SHOT-2",
+        "asset_status": null,
+        "current_target_id": null,
+        "detected_threat_ids": [],
+        "cooldown_remaining_s": null
+      }
+    ],
+    "events": []
+  },
+  "events": [
+    {
+      "type": "sensor_track",
+      "event_id": "55225aab-1feb-440c-a21b-127f794ee8f4",
+      "sim_time_s": 0.9999999999999999,
+      "sensor_id": "TRK-1",
+      "threat_id": "T-4",
+      "position": {
+        "lat": 24.224966283645564,
+        "lon": 48.78607561164708,
+        "alt": 1507.6983622172968
+      }
+    },
+    {
+      "type": "sensor_track",
+      "event_id": "fb9fb10f-ea93-42c7-a830-5f737f8f03a4",
+      "sim_time_s": 0.9999999999999999,
+      "sensor_id": "TRK-1",
+      "threat_id": "T-5",
+      "position": {
+        "lat": 30.998767671821458,
+        "lon": 51.847116552649105,
+        "alt": 2463.246580666238
+      }
+    },
+    {
+      "type": "sensor_track",
+      "event_id": "0ae1b8bd-732b-4d92-a671-967f2e08f874",
+      "sim_time_s": 2.1000000000000005,
+      "sensor_id": "EWR-2",
+      "threat_id": "T-4",
+      "position": {
+        "lat": 24.245090709173063,
+        "lon": 48.76942903301088,
+        "alt": 3166.121111500551
+      }
+    },
+    {
+      "type": "sensor_track",
+      "event_id": "1e4c1a37-de87-4548-809a-95524826dd01",
+      "sim_time_s": 2.1000000000000005,
+      "sensor_id": "EWR-2",
+      "threat_id": "T-5",
+      "position": {
+        "lat": 31.00834356004427,
+        "lon": 51.820015843736606,
+        "alt": 5172.619616364533
+      }
+    },
+    {
+      "type": "engagement_order",
+      "event_id": "2bfefebb-b883-40f8-aaf4-81ca68ce1940",
+      "sim_time_s": 90.89999999999911,
+      "battery_id": "DS-3",
+      "threat_id": "T-5",
+      "interceptor_id": "DS-3-SHOT-1",
+      "position": {
+        "lat": 32.78446028960445,
+        "lon": 40.66624294517631,
+        "alt": 0.0
+      }
+    },
+    {
+      "type": "engagement_order",
+      "event_id": "e1d05231-b844-4170-9395-5e77a6124985",
+      "sim_time_s": 154.09999999999553,
+      "battery_id": "DS-3",
+      "threat_id": "T-4",
+      "interceptor_id": "DS-3-SHOT-2",
+      "position": {
+        "lat": 32.78446028960445,
+        "lon": 40.66624294517631,
+        "alt": 0.0
+      }
+    },
+    {
+      "type": "event_intercept",
+      "event_id": "6d7dbdc1-246b-4cc6-9263-5cd39c5e59f4",
+      "sim_time_s": 264.99999999999176,
+      "threat_id": "T-5",
+      "interceptor_id": "DS-3-SHOT-1",
+      "position": {
+        "lat": 33.296110310003655,
+        "lon": 45.34541011446011,
+        "alt": 246874.29675803342
+      },
+      "outcome": "success"
+    },
+    {
+      "type": "event_intercept",
+      "event_id": "6aef7c2f-f3a6-4e65-babd-952973aed06e",
+      "sim_time_s": 323.10000000000497,
+      "threat_id": "T-4",
+      "interceptor_id": "DS-3-SHOT-2",
+      "position": {
+        "lat": 30.11776397674293,
+        "lon": 43.91165472190382,
+        "alt": 299578.72248109087
+      },
+      "outcome": "success"
+    }
+  ]
+}

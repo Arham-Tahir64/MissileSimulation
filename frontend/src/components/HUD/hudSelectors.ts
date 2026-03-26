@@ -30,6 +30,10 @@ export interface TrackRow {
   latestEventLabel: string | null;
   targetId: string | null;
   trackState: EntityState;
+  /** Salvo group identifier — set when this threat was launched within 15 s of another threat. */
+  salvoId: string | null;
+  /** Number of threats in the same salvo (including this one). Only set when salvoId is non-null. */
+  salvoSize: number;
 }
 
 export interface DefenseAssetRow {
@@ -55,6 +59,8 @@ export interface AlertRow {
   relatedEntityId: string | null;
   relatedAssetId: string | null;
   event: RuntimeEvent;
+  /** Estimated single-shot kill probability (0–1). Null for non-engagement events. */
+  pkScore: number | null;
 }
 
 export interface ScenarioMetrics {
@@ -68,6 +74,10 @@ export interface ScenarioMetrics {
   interceptSuccesses: number;
   interceptMisses: number;
   trackedThreats: number;
+  /** Total engagement slots across non-cooldown batteries. */
+  batteryCapacity: number;
+  /** True when active threats exceed available battery capacity. */
+  saturated: boolean;
 }
 
 export interface ReplayEventMarker {
@@ -100,8 +110,70 @@ export interface HudSnapshot {
   markers: ReplayEventMarker[];
 }
 
+/** Base single-shot kill probability per battery designator prefix. */
+const PK_BASE: Record<string, number> = {
+  ID:  0.90,  // Iron Dome
+  DS:  0.82,  // David's Sling
+  ARW: 0.75,  // Arrow
+};
+
+/**
+ * Deterministic pseudo-random ±0.05 variation seeded on the event ID string
+ * so the same event always gets the same Pk value across renders.
+ */
+function pkJitter(eventId: string): number {
+  let h = 0;
+  for (let i = 0; i < eventId.length; i++) {
+    h = (Math.imul(31, h) + eventId.charCodeAt(i)) | 0;
+  }
+  return ((h >>> 0) % 100) / 1000 - 0.05; // -0.05 .. +0.049
+}
+
+function computePk(batteryId: string | null, eventId: string): number | null {
+  if (!batteryId) return null;
+  const prefix = batteryId.split('-', 1)[0].toUpperCase();
+  const base = PK_BASE[prefix] ?? null;
+  if (base === null) return null;
+  return Math.min(0.99, Math.max(0.1, base + pkJitter(eventId)));
+}
+
 function buildDefinitionMap(activeScenario: ScenarioDefinition | null): Map<string, EntityDefinition> {
   return new Map((activeScenario?.entities ?? []).map((entity) => [entity.id, entity]));
+}
+
+/** Group threat entities whose launch times fall within SALVO_WINDOW_S of each other. */
+const SALVO_WINDOW_S = 15;
+
+function buildSalvoMap(definitions: EntityDefinition[]): Map<string, { salvoId: string; salvoSize: number }> {
+  const threatDefs = definitions.filter((d) =>
+    d.type === 'ballistic_threat' || d.type === 'cruise_threat',
+  );
+  // Sort by launch time
+  const sorted = [...threatDefs].sort((a, b) => (a.launch_time_s ?? 0) - (b.launch_time_s ?? 0));
+
+  const result = new Map<string, { salvoId: string; salvoSize: number }>();
+  let groupStart = 0;
+
+  while (groupStart < sorted.length) {
+    let groupEnd = groupStart + 1;
+    const anchorTime = sorted[groupStart].launch_time_s ?? 0;
+    while (
+      groupEnd < sorted.length &&
+      (sorted[groupEnd].launch_time_s ?? 0) - anchorTime <= SALVO_WINDOW_S
+    ) {
+      groupEnd++;
+    }
+    const group = sorted.slice(groupStart, groupEnd);
+    if (group.length >= 2) {
+      const salvoId = `salvo_${anchorTime.toFixed(0)}_${group.length}`;
+      for (const def of group) {
+        result.set(def.id, { salvoId, salvoSize: group.length });
+      }
+    }
+    groupStart = groupEnd;
+  }
+
+  return result;
 }
 
 function getLatestEventMap(events: RuntimeEvent[]): Map<string, RuntimeEvent> {
@@ -126,7 +198,9 @@ function toTrackRow(
   entity: EntityState,
   definition: EntityDefinition | null,
   latestEventMap: Map<string, RuntimeEvent>,
+  salvoMap: Map<string, { salvoId: string; salvoSize: number }>,
 ): TrackRow {
+  const salvo = salvoMap.get(entity.id) ?? null;
   return {
     id: entity.id,
     name: getEntityDisplayName(entity, definition),
@@ -140,6 +214,8 @@ function toTrackRow(
       : null,
     targetId: entity.current_target_id ?? null,
     trackState: entity,
+    salvoId: salvo?.salvoId ?? null,
+    salvoSize: salvo?.salvoSize ?? 0,
   };
 }
 
@@ -185,6 +261,7 @@ function toAlertRow(event: RuntimeEvent): AlertRow {
       relatedEntityId: event.threat_id,
       relatedAssetId: event.sensor_id,
       event,
+      pkScore: null,
     };
   }
 
@@ -198,6 +275,7 @@ function toAlertRow(event: RuntimeEvent): AlertRow {
       relatedEntityId: event.interceptor_id,
       relatedAssetId: event.battery_id,
       event,
+      pkScore: computePk(event.battery_id, event.event_id),
     };
   }
 
@@ -210,6 +288,7 @@ function toAlertRow(event: RuntimeEvent): AlertRow {
     relatedEntityId: event.interceptor_id,
     relatedAssetId: null,
     event,
+    pkScore: null,
   };
 }
 
@@ -339,9 +418,20 @@ function buildMetrics(
     track.status === 'intercepted' || track.status === 'destroyed' || track.status === 'missed'
   )).length;
 
+  const activeTracks = tracks.filter((track) => track.status === 'active').length;
+
+  // Available battery capacity = max tracks across all batteries NOT in cooldown
+  const batteryCapacity = assets
+    .filter((asset) => asset.role === 'battery')
+    .reduce((sum, asset) => {
+      const cfg = getDefenseAssetConfigByDesignator(asset.assetState.designator);
+      const inCooldown = asset.assetState.asset_status === 'cooldown';
+      return sum + (inCooldown ? 0 : (cfg?.maxTracks ?? 0));
+    }, 0);
+
   return {
     totalTracks: tracks.length,
-    activeTracks: tracks.filter((track) => track.status === 'active').length,
+    activeTracks,
     completedTracks,
     totalAssets: assets.length,
     radarsTracking: assets.filter((asset) => asset.role === 'radar' && asset.trackCount > 0).length,
@@ -352,6 +442,8 @@ function buildMetrics(
     trackedThreats: assets
       .filter((asset) => asset.role === 'radar')
       .reduce((sum, asset) => sum + asset.trackCount, 0),
+    batteryCapacity,
+    saturated: activeTracks > 0 && batteryCapacity > 0 && activeTracks > batteryCapacity,
   };
 }
 
@@ -393,9 +485,10 @@ export function deriveHudSnapshot({
 }): HudSnapshot {
   const definitionMap = buildDefinitionMap(activeScenario);
   const latestEventMap = getLatestEventMap(events);
+  const salvoMap = buildSalvoMap(activeScenario?.entities ?? []);
   const tracks = entities
     .filter((entity) => isMovingRuntimeEntity(entity, definitionMap.get(entity.id)))
-    .map((entity) => toTrackRow(entity, definitionMap.get(entity.id) ?? null, latestEventMap))
+    .map((entity) => toTrackRow(entity, definitionMap.get(entity.id) ?? null, latestEventMap, salvoMap))
     .sort((a, b) => {
       const statusRank = (status: EntityState['status']) => (
         status === 'active' ? 0 : status === 'inactive' ? 1 : 2

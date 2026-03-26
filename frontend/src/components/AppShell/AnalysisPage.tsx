@@ -1,8 +1,10 @@
+import { useMemo } from 'react';
 import { HudSnapshot } from '../HUD/hudSelectors';
 import { buttonReset, glassPanel, hudTheme, monoText, sectionTitle } from '../HUD/hudTheme';
 import { buildAnalysisModel } from './analysis/analysisModel';
 import { useDashboardStore } from '../../store/dashboardStore';
 import { usePlayback } from '../Playback/usePlayback';
+import { getDefenseAssetConfigByDesignator } from '../../config/defenseAssets';
 
 export function AnalysisPage({ snapshot }: { snapshot: HudSnapshot }) {
   const model = buildAnalysisModel(snapshot);
@@ -155,9 +157,291 @@ export function AnalysisPage({ snapshot }: { snapshot: HudSnapshot }) {
           </div>
         </section>
       </section>
+
+      {/* ── Threat Density Heat Map ────────────────────────────────── */}
+      <ThreatDensityMap snapshot={snapshot} />
+
+      {/* ── Coverage Gap Analysis ─────────────────────────────────── */}
+      <CoverageGapTable snapshot={snapshot} />
     </div>
   );
 }
+
+const HEAT_BUCKETS = 20;
+
+function ThreatDensityMap({ snapshot }: { snapshot: HudSnapshot }) {
+  const buckets = useMemo(() => {
+    const counts = Array<number>(HEAT_BUCKETS).fill(0);
+    for (const marker of snapshot.markers) {
+      const idx = Math.min(HEAT_BUCKETS - 1, Math.floor(marker.fraction * HEAT_BUCKETS));
+      counts[idx]++;
+    }
+    const maxCount = Math.max(1, ...counts);
+    return counts.map((count, i) => ({
+      count,
+      fraction: i / HEAT_BUCKETS,
+      intensity: count / maxCount,
+    }));
+  }, [snapshot.markers]);
+
+  const totalEvents = snapshot.markers.length;
+
+  return (
+    <section style={heatStyles.wrap}>
+      <div style={heatStyles.header}>
+        <div style={sectionTitle}>Threat Activity Heat Map</div>
+        <span style={heatStyles.meta}>{totalEvents} EVENTS / {HEAT_BUCKETS} TIME BUCKETS</span>
+      </div>
+      <div style={heatStyles.grid}>
+        {buckets.map((bucket, i) => {
+          const r = Math.round(0 + bucket.intensity * 255);
+          const g = Math.round(229 - bucket.intensity * 180);
+          const b = Math.round(255 - bucket.intensity * 200);
+          const color = `rgba(${r},${g},${b},${0.15 + bucket.intensity * 0.75})`;
+          return (
+            <div
+              key={i}
+              title={`T${(bucket.fraction * 100).toFixed(0)}%: ${bucket.count} events`}
+              style={{ ...heatStyles.cell, background: color, height: `${20 + bucket.intensity * 44}px` }}
+            />
+          );
+        })}
+      </div>
+      <div style={heatStyles.axis}>
+        <span style={heatStyles.axisLabel}>T+0</span>
+        <span style={heatStyles.axisLabel}>50%</span>
+        <span style={heatStyles.axisLabel}>END</span>
+      </div>
+      <div style={heatStyles.legend}>
+        <div style={heatStyles.legendGrad} />
+        <div style={heatStyles.legendLabels}>
+          <span>LOW</span>
+          <span>HIGH</span>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+const heatStyles: Record<string, React.CSSProperties> = {
+  wrap: {
+    ...glassPanel,
+    padding: '14px 18px 12px',
+  },
+  header: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  meta: {
+    ...monoText,
+    color: hudTheme.faint,
+    fontSize: 10,
+    letterSpacing: '0.14em',
+  } as React.CSSProperties,
+  grid: {
+    display: 'flex',
+    gap: 3,
+    alignItems: 'flex-end',
+    height: 68,
+  },
+  cell: {
+    flex: 1,
+    minWidth: 0,
+    borderRadius: 1,
+    transition: 'height 0.4s ease',
+  },
+  axis: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    marginTop: 6,
+  },
+  axisLabel: {
+    ...monoText,
+    color: hudTheme.faint,
+    fontSize: 9,
+    letterSpacing: '0.1em',
+  } as React.CSSProperties,
+  legend: {
+    marginTop: 8,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 4,
+    alignItems: 'flex-end',
+  },
+  legendGrad: {
+    width: 120,
+    height: 6,
+    background: 'linear-gradient(to right, rgba(0,229,255,0.5), rgba(255,80,80,0.9))',
+    borderRadius: 2,
+  },
+  legendLabels: {
+    ...monoText,
+    color: hudTheme.faint,
+    fontSize: 9,
+    letterSpacing: '0.12em',
+    display: 'flex',
+    justifyContent: 'space-between',
+    width: 120,
+  } as React.CSSProperties,
+};
+
+function CoverageGapTable({ snapshot }: { snapshot: HudSnapshot }) {
+  const rows = useMemo(() => {
+    return snapshot.defenseAssets.map((asset) => {
+      const cfg      = getDefenseAssetConfigByDesignator(asset.assetState.designator);
+      const maxTrk   = cfg?.maxTracks ?? 0;
+      const current  = asset.trackCount;
+      const utilized = maxTrk > 0 ? current / maxTrk : 0;
+
+      return {
+        id:         asset.id,
+        name:       asset.name,
+        role:       asset.role,
+        status:     asset.status,
+        trackCount: current,
+        maxTracks:  maxTrk,
+        utilized,
+        coverageKm: asset.rangeKm,
+        gap:        maxTrk > 0 && current === 0 && asset.status !== 'COOLDOWN',
+      };
+    });
+  }, [snapshot.defenseAssets]);
+
+  const gapCount = rows.filter((r) => r.gap).length;
+
+  return (
+    <section style={covStyles.wrap}>
+      <div style={covStyles.header}>
+        <div style={sectionTitle}>Coverage Gap Analysis</div>
+        <span style={{ ...covStyles.badge, color: gapCount > 0 ? '#ffb400' : hudTheme.cyanSoft }}>
+          {gapCount > 0 ? `${gapCount} IDLE ASSET${gapCount > 1 ? 'S' : ''}` : 'ALL ASSETS ACTIVE'}
+        </span>
+      </div>
+
+      <div style={covStyles.tableWrap}>
+        <div style={covStyles.tableHead}>
+          <span>ASSET</span>
+          <span>ROLE</span>
+          <span>STATUS</span>
+          <span>TRACKS</span>
+          <span>COVERAGE</span>
+          <span>UTILIZATION</span>
+        </div>
+        {rows.length > 0 ? rows.map((row) => (
+          <div key={row.id} style={{
+            ...covStyles.tableRow,
+            background: row.gap ? 'rgba(255,180,0,0.05)' : 'rgba(255,255,255,0.025)',
+            boxShadow: row.gap ? 'inset 3px 0 0 rgba(255,180,0,0.4)' : 'none',
+          }}>
+            <span style={covStyles.nameCell}>{row.name}</span>
+            <span style={{ ...covStyles.cell, color: row.role === 'radar' ? hudTheme.amberSoft : hudTheme.cyanSoft }}>
+              {row.role.toUpperCase()}
+            </span>
+            <span style={covStyles.cell}>{row.status}</span>
+            <span style={covStyles.cell}>
+              {row.maxTracks > 0 ? `${row.trackCount}/${row.maxTracks}` : '—'}
+            </span>
+            <span style={covStyles.cell}>{row.coverageKm.toFixed(0)} KM</span>
+            <span style={covStyles.utilCell}>
+              <div style={covStyles.utilTrack}>
+                <div style={{
+                  ...covStyles.utilFill,
+                  width: `${(row.utilized * 100).toFixed(0)}%`,
+                  background: row.gap ? 'rgba(255,180,0,0.5)' : row.role === 'radar' ? '#b8860b' : '#00bcd4',
+                }} />
+              </div>
+              <span style={{ ...covStyles.cell, minWidth: 36 }}>
+                {row.maxTracks > 0 ? `${(row.utilized * 100).toFixed(0)}%` : 'N/A'}
+              </span>
+            </span>
+          </div>
+        )) : (
+          <div style={covStyles.empty}>No defense assets deployed.</div>
+        )}
+      </div>
+    </section>
+  );
+}
+
+const covStyles: Record<string, React.CSSProperties> = {
+  wrap: {
+    ...glassPanel,
+    padding: '14px 18px 12px',
+    marginBottom: 8,
+  },
+  header: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  badge: {
+    ...monoText,
+    fontSize: 10,
+    letterSpacing: '0.16em',
+  } as React.CSSProperties,
+  tableWrap: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 4,
+  },
+  tableHead: {
+    display: 'grid',
+    gridTemplateColumns: '1fr 80px 100px 80px 100px 1fr',
+    gap: 8,
+    padding: '6px 10px',
+    ...monoText,
+    fontSize: 9,
+    letterSpacing: '0.16em',
+    color: hudTheme.faint,
+    textTransform: 'uppercase',
+  } as React.CSSProperties,
+  tableRow: {
+    display: 'grid',
+    gridTemplateColumns: '1fr 80px 100px 80px 100px 1fr',
+    gap: 8,
+    padding: '8px 10px',
+    alignItems: 'center',
+  },
+  nameCell: {
+    color: hudTheme.text,
+    fontSize: 13,
+    fontFamily: "'Space Grotesk', 'Inter', sans-serif",
+  },
+  cell: {
+    ...monoText,
+    color: hudTheme.muted,
+    fontSize: 11,
+    letterSpacing: '0.1em',
+  } as React.CSSProperties,
+  utilCell: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 8,
+  },
+  utilTrack: {
+    flex: 1,
+    height: 6,
+    background: 'rgba(255,255,255,0.07)',
+    position: 'relative' as const,
+    overflow: 'hidden' as const,
+  },
+  utilFill: {
+    position: 'absolute' as const,
+    top: 0,
+    left: 0,
+    height: '100%',
+    transition: 'width 0.5s ease',
+  },
+  empty: {
+    ...monoText,
+    color: hudTheme.faint,
+    fontSize: 11,
+    padding: '10px',
+  } as React.CSSProperties,
+};
 
 function SectionHeader({ title }: { title: string }) {
   return (
@@ -225,10 +509,11 @@ const styles: Record<string, React.CSSProperties> = {
     position: 'absolute',
     inset: '96px 20px 24px 20px',
     display: 'grid',
-    gridTemplateRows: 'auto auto minmax(0, 1fr)',
+    gridTemplateRows: 'auto auto minmax(0, 1fr) auto auto',
     gap: 18,
     pointerEvents: 'auto',
-    overflow: 'hidden',
+    overflowY: 'auto',
+    overflowX: 'hidden',
   },
   header: {
     display: 'flex',

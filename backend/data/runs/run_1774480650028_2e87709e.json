@@ -1,0 +1,1551 @@
+{
+  "summary": {
+    "run_id": "run_1774480650028_2e87709e",
+    "session_id": "archive_1774480227292",
+    "scenario_id": "custom_1774478930623",
+    "scenario_name": "Custom Scenario (5 entities)",
+    "scenario_description": "User-generated scenario",
+    "status": "completed",
+    "started_at_ms": 1774480227307,
+    "completed_at_ms": 1774480650028,
+    "duration_s": 646.0,
+    "final_sim_time_s": 646.0000000000783,
+    "event_count": 103,
+    "entity_count": 7,
+    "intercept_successes": 6,
+    "intercept_misses": 0
+  },
+  "scenario": {
+    "metadata": {
+      "id": "custom_1774478930623",
+      "name": "Custom Scenario (5 entities)",
+      "description": "User-generated scenario",
+      "duration_s": 646.0,
+      "tick_rate_hz": 10.0,
+      "threat_count": 2,
+      "interceptor_count": 1,
+      "tags": [
+        "custom",
+        "user-placed"
+      ]
+    },
+    "entities": [
+      {
+        "id": "TRK-1",
+        "type": "sensor",
+        "label": "Tracking Radar",
+        "designator": "TRK-1",
+        "trajectory_type": "stationary",
+        "origin": {
+          "lat": 31.654697423258277,
+          "lon": 44.30074074149118,
+          "alt": 0.0
+        },
+        "waypoints": null,
+        "target": null,
+        "launch_time_s": 0.0,
+        "speed_ms": null
+      },
+      {
+        "id": "EWR-2",
+        "type": "sensor",
+        "label": "Early Warning Radar",
+        "designator": "EWR-2",
+        "trajectory_type": "stationary",
+        "origin": {
+          "lat": 29.799691764046525,
+          "lon": 47.93252538954685,
+          "alt": 0.0
+        },
+        "waypoints": null,
+        "target": null,
+        "launch_time_s": 0.0,
+        "speed_ms": null
+      },
+      {
+        "id": "DS-3",
+        "type": "interceptor",
+        "label": "David's Sling Battery",
+        "designator": "DS-3",
+        "trajectory_type": "stationary",
+        "origin": {
+          "lat": 32.78446028960445,
+          "lon": 40.66624294517631,
+          "alt": 0.0
+        },
+        "waypoints": null,
+        "target": null,
+        "launch_time_s": 0.0,
+        "speed_ms": null
+      },
+      {
+        "id": "T-4",
+        "type": "ballistic_threat",
+        "label": "Ballistic Missile",
+        "designator": "T-4",
+        "trajectory_type": "ballistic",
+        "origin": {
+          "lat": 24.20667135134784,
+          "lon": 48.801208864952706,
+          "alt": 0.0
+        },
+        "waypoints": null,
+        "target": {
+          "lat": 35.64297407578329,
+          "lon": 39.34129596709195,
+          "alt": 0.0
+        },
+        "launch_time_s": 0.0,
+        "speed_ms": 2500.0
+      },
+      {
+        "id": "T-5",
+        "type": "ballistic_threat",
+        "label": "Ballistic Missile",
+        "designator": "T-5",
+        "trajectory_type": "ballistic",
+        "origin": {
+          "lat": 30.990062318891628,
+          "lon": 51.87175356075137,
+          "alt": 0.0
+        },
+        "waypoints": null,
+        "target": {
+          "lat": 34.32083306548425,
+          "lon": 42.44534356542383,
+          "alt": 0.0
+        },
+        "launch_time_s": 0.0,
+        "speed_ms": 2500.0
+      }
+    ],
+    "events": []
+  },
+  "final_state": {
+    "type": "sim_state",
+    "session_id": "archive_1774480227292",
+    "scenario_id": "custom_1774478930623",
+    "sim_time_s": 646.0000000000783,
+    "wall_time_ms": 1774480650028,
+    "status": "completed",
+    "entities": [
+      {
+        "id": "TRK-1",
+        "type": "sensor",
+        "status": "active",
+        "position": {
+          "lat": 31.654697423258277,
+          "lon": 44.30074074149118,
+          "alt": 0.0
+        },
+        "velocity_ms": 0.0,
+        "heading_deg": 0.0,
+        "pitch_deg": 0.0,
+        "sim_time_s": 646.0000000000783,
+        "trajectory_type": "stationary",
+        "label": "Tracking Radar",
+        "designator": "TRK-1",
+        "asset_status": "idle",
+        "current_target_id": null,
+        "detected_threat_ids": [],
+        "cooldown_remaining_s": null
+      },
+      {
+        "id": "EWR-2",
+        "type": "sensor",
+        "status": "active",
+        "position": {
+          "lat": 29.799691764046525,
+          "lon": 47.93252538954685,
+          "alt": 0.0
+        },
+        "velocity_ms": 0.0,
+        "heading_deg": 0.0,
+        "pitch_deg": 0.0,
+        "sim_time_s": 646.0000000000783,
+        "trajectory_type": "stationary",
+        "label": "Early Warning Radar",
+        "designator": "EWR-2",
+        "asset_status": "idle",
+        "current_target_id": null,
+        "detected_threat_ids": [],
+        "cooldown_remaining_s": null
+      },
+      {
+        "id": "DS-3",
+        "type": "interceptor",
+        "status": "active",
+        "position": {
+          "lat": 32.78446028960445,
+          "lon": 40.66624294517631,
+          "alt": 0.0
+        },
+        "velocity_ms": 0.0,
+        "heading_deg": 0.0,
+        "pitch_deg": 0.0,
+        "sim_time_s": 646.0000000000783,
+        "trajectory_type": "stationary",
+        "label": "David's Sling Battery",
+        "designator": "DS-3",
+        "asset_status": "idle",
+        "current_target_id": null,
+        "detected_threat_ids": [],
+        "cooldown_remaining_s": 0.0
+      },
+      {
+        "id": "T-4",
+        "type": "ballistic_threat",
+        "status": "intercepted",
+        "position": {
+          "lat": 35.64297407578329,
+          "lon": 39.34129596709195,
+          "alt": 0.0
+        },
+        "velocity_ms": 2500.0,
+        "heading_deg": 326.6317219008911,
+        "pitch_deg": -44.75217403393046,
+        "sim_time_s": 646.0000000000783,
+        "trajectory_type": "ballistic",
+        "label": "Ballistic Missile",
+        "designator": "T-4",
+        "asset_status": null,
+        "current_target_id": null,
+        "detected_threat_ids": [],
+        "cooldown_remaining_s": null
+      },
+      {
+        "id": "T-5",
+        "type": "ballistic_threat",
+        "status": "intercepted",
+        "position": {
+          "lat": 34.32083306548425,
+          "lon": 42.44534356542383,
+          "alt": 0.0
+        },
+        "velocity_ms": 2500.0,
+        "heading_deg": 295.26629863185553,
+        "pitch_deg": 25.105811838595013,
+        "sim_time_s": 646.0000000000783,
+        "trajectory_type": "ballistic",
+        "label": "Ballistic Missile",
+        "designator": "T-5",
+        "asset_status": null,
+        "current_target_id": null,
+        "detected_threat_ids": [],
+        "cooldown_remaining_s": null
+      },
+      {
+        "id": "DS-3-SHOT-1",
+        "type": "interceptor",
+        "status": "destroyed",
+        "position": {
+          "lat": 33.296110310003655,
+          "lon": 45.34541011446011,
+          "alt": 246874.29675803342
+        },
+        "velocity_ms": 2500.0,
+        "heading_deg": 81.29627656568204,
+        "pitch_deg": -39.750068135854896,
+        "sim_time_s": 646.0000000000783,
+        "trajectory_type": "ballistic",
+        "label": "David's Sling Battery Shot",
+        "designator": "DS-3-SHOT-1",
+        "asset_status": null,
+        "current_target_id": null,
+        "detected_threat_ids": [],
+        "cooldown_remaining_s": null
+      },
+      {
+        "id": "DS-3-SHOT-2",
+        "type": "interceptor",
+        "status": "destroyed",
+        "position": {
+          "lat": 30.11776397674293,
+          "lon": 43.91165472190382,
+          "alt": 299578.72248109087
+        },
+        "velocity_ms": 2500.0,
+        "heading_deg": 133.06845335198375,
+        "pitch_deg": -41.70228063416101,
+        "sim_time_s": 646.0000000000783,
+        "trajectory_type": "ballistic",
+        "label": "David's Sling Battery Shot",
+        "designator": "DS-3-SHOT-2",
+        "asset_status": null,
+        "current_target_id": null,
+        "detected_threat_ids": [],
+        "cooldown_remaining_s": null
+      }
+    ],
+    "events": []
+  },
+  "events": [
+    {
+      "type": "sensor_track",
+      "event_id": "5e8da0a2-b369-48c1-a85c-70f5bfb4ab56",
+      "sim_time_s": 0.9999999999999999,
+      "sensor_id": "TRK-1",
+      "threat_id": "T-4",
+      "position": {
+        "lat": 24.224966283645564,
+        "lon": 48.78607561164708,
+        "alt": 1507.6983622172968
+      }
+    },
+    {
+      "type": "sensor_track",
+      "event_id": "364f8f43-3404-4e6d-9c43-3afa4d513ec5",
+      "sim_time_s": 0.9999999999999999,
+      "sensor_id": "TRK-1",
+      "threat_id": "T-5",
+      "position": {
+        "lat": 30.998767671821458,
+        "lon": 51.847116552649105,
+        "alt": 2463.246580666238
+      }
+    },
+    {
+      "type": "sensor_track",
+      "event_id": "b471b1a8-f09e-4ddf-bc89-c33917a32649",
+      "sim_time_s": 2.1000000000000005,
+      "sensor_id": "EWR-2",
+      "threat_id": "T-4",
+      "position": {
+        "lat": 24.245090709173063,
+        "lon": 48.76942903301088,
+        "alt": 3166.121111500551
+      }
+    },
+    {
+      "type": "sensor_track",
+      "event_id": "33805a54-9d7f-4302-8a2d-1837585d2748",
+      "sim_time_s": 2.1000000000000005,
+      "sensor_id": "EWR-2",
+      "threat_id": "T-5",
+      "position": {
+        "lat": 31.00834356004427,
+        "lon": 51.820015843736606,
+        "alt": 5172.619616364533
+      }
+    },
+    {
+      "type": "sensor_track",
+      "event_id": "f8ca2e90-929b-4c3a-b8e7-164763a66bd2",
+      "sim_time_s": 0.9999999999999999,
+      "sensor_id": "TRK-1",
+      "threat_id": "T-4",
+      "position": {
+        "lat": 24.224966283645564,
+        "lon": 48.78607561164708,
+        "alt": 1507.6983622172968
+      }
+    },
+    {
+      "type": "sensor_track",
+      "event_id": "7aea6538-f4bb-408a-ac0c-84bcae33cb7c",
+      "sim_time_s": 0.9999999999999999,
+      "sensor_id": "TRK-1",
+      "threat_id": "T-5",
+      "position": {
+        "lat": 30.998767671821458,
+        "lon": 51.847116552649105,
+        "alt": 2463.246580666238
+      }
+    },
+    {
+      "type": "sensor_track",
+      "event_id": "9a1ec74a-9883-4948-b3fa-2266ed08fbda",
+      "sim_time_s": 2.1000000000000005,
+      "sensor_id": "EWR-2",
+      "threat_id": "T-4",
+      "position": {
+        "lat": 24.245090709173063,
+        "lon": 48.76942903301088,
+        "alt": 3166.121111500551
+      }
+    },
+    {
+      "type": "sensor_track",
+      "event_id": "52799ec2-e26f-4151-a08f-ced9b113f41d",
+      "sim_time_s": 2.1000000000000005,
+      "sensor_id": "EWR-2",
+      "threat_id": "T-5",
+      "position": {
+        "lat": 31.00834356004427,
+        "lon": 51.820015843736606,
+        "alt": 5172.619616364533
+      }
+    },
+    {
+      "type": "sensor_track",
+      "event_id": "f276901f-67aa-482b-b1f2-da4e8c9b3f63",
+      "sim_time_s": 0.9999999999999999,
+      "sensor_id": "TRK-1",
+      "threat_id": "T-4",
+      "position": {
+        "lat": 24.224966283645564,
+        "lon": 48.78607561164708,
+        "alt": 1507.6983622172968
+      }
+    },
+    {
+      "type": "sensor_track",
+      "event_id": "88e20616-e0c2-411c-9841-b81cff095931",
+      "sim_time_s": 0.9999999999999999,
+      "sensor_id": "TRK-1",
+      "threat_id": "T-5",
+      "position": {
+        "lat": 30.998767671821458,
+        "lon": 51.847116552649105,
+        "alt": 2463.246580666238
+      }
+    },
+    {
+      "type": "sensor_track",
+      "event_id": "664da50d-042a-431a-8ce5-e2e6222d18a9",
+      "sim_time_s": 2.1000000000000005,
+      "sensor_id": "EWR-2",
+      "threat_id": "T-4",
+      "position": {
+        "lat": 24.245090709173063,
+        "lon": 48.76942903301088,
+        "alt": 3166.121111500551
+      }
+    },
+    {
+      "type": "sensor_track",
+      "event_id": "2d86f45e-2b0e-4775-b8a5-bb0c68e1ccad",
+      "sim_time_s": 2.1000000000000005,
+      "sensor_id": "EWR-2",
+      "threat_id": "T-5",
+      "position": {
+        "lat": 31.00834356004427,
+        "lon": 51.820015843736606,
+        "alt": 5172.619616364533
+      }
+    },
+    {
+      "type": "sensor_track",
+      "event_id": "053062c2-e0de-4de3-a7f7-4121e1e05dff",
+      "sim_time_s": 0.9999999999999999,
+      "sensor_id": "TRK-1",
+      "threat_id": "T-4",
+      "position": {
+        "lat": 24.224966283645564,
+        "lon": 48.78607561164708,
+        "alt": 1507.6983622172968
+      }
+    },
+    {
+      "type": "sensor_track",
+      "event_id": "93ab274e-6ce4-464d-80f3-2f162dbf6142",
+      "sim_time_s": 0.9999999999999999,
+      "sensor_id": "TRK-1",
+      "threat_id": "T-5",
+      "position": {
+        "lat": 30.998767671821458,
+        "lon": 51.847116552649105,
+        "alt": 2463.246580666238
+      }
+    },
+    {
+      "type": "sensor_track",
+      "event_id": "31d8313d-992d-49d8-849d-799520962f12",
+      "sim_time_s": 2.1000000000000005,
+      "sensor_id": "EWR-2",
+      "threat_id": "T-4",
+      "position": {
+        "lat": 24.245090709173063,
+        "lon": 48.76942903301088,
+        "alt": 3166.121111500551
+      }
+    },
+    {
+      "type": "sensor_track",
+      "event_id": "1b6a265f-0fbd-4b9b-ad45-bf3d9af191be",
+      "sim_time_s": 2.1000000000000005,
+      "sensor_id": "EWR-2",
+      "threat_id": "T-5",
+      "position": {
+        "lat": 31.00834356004427,
+        "lon": 51.820015843736606,
+        "alt": 5172.619616364533
+      }
+    },
+    {
+      "type": "sensor_track",
+      "event_id": "cad27791-4a48-4b71-8ccc-4ffc72d802ab",
+      "sim_time_s": 0.9999999999999999,
+      "sensor_id": "TRK-1",
+      "threat_id": "T-4",
+      "position": {
+        "lat": 24.224966283645564,
+        "lon": 48.78607561164708,
+        "alt": 1507.6983622172968
+      }
+    },
+    {
+      "type": "sensor_track",
+      "event_id": "3d943e49-e779-44f3-880a-5b253631baa4",
+      "sim_time_s": 0.9999999999999999,
+      "sensor_id": "TRK-1",
+      "threat_id": "T-5",
+      "position": {
+        "lat": 30.998767671821458,
+        "lon": 51.847116552649105,
+        "alt": 2463.246580666238
+      }
+    },
+    {
+      "type": "sensor_track",
+      "event_id": "716569b3-53fe-4dba-aed9-92c44172274d",
+      "sim_time_s": 2.1000000000000005,
+      "sensor_id": "EWR-2",
+      "threat_id": "T-4",
+      "position": {
+        "lat": 24.245090709173063,
+        "lon": 48.76942903301088,
+        "alt": 3166.121111500551
+      }
+    },
+    {
+      "type": "sensor_track",
+      "event_id": "a0fc58ae-8aea-4885-8bde-f03bc1d50fe9",
+      "sim_time_s": 2.1000000000000005,
+      "sensor_id": "EWR-2",
+      "threat_id": "T-5",
+      "position": {
+        "lat": 31.00834356004427,
+        "lon": 51.820015843736606,
+        "alt": 5172.619616364533
+      }
+    },
+    {
+      "type": "sensor_track",
+      "event_id": "236766de-8945-4bd6-b156-153755baecd9",
+      "sim_time_s": 0.9999999999999999,
+      "sensor_id": "TRK-1",
+      "threat_id": "T-4",
+      "position": {
+        "lat": 24.224966283645564,
+        "lon": 48.78607561164708,
+        "alt": 1507.6983622172968
+      }
+    },
+    {
+      "type": "sensor_track",
+      "event_id": "5a038881-6f9d-41a1-8c08-67e8be629b4e",
+      "sim_time_s": 0.9999999999999999,
+      "sensor_id": "TRK-1",
+      "threat_id": "T-5",
+      "position": {
+        "lat": 30.998767671821458,
+        "lon": 51.847116552649105,
+        "alt": 2463.246580666238
+      }
+    },
+    {
+      "type": "sensor_track",
+      "event_id": "3c064c86-1c13-4e06-a1a1-292ef5e7c83a",
+      "sim_time_s": 2.1000000000000005,
+      "sensor_id": "EWR-2",
+      "threat_id": "T-4",
+      "position": {
+        "lat": 24.245090709173063,
+        "lon": 48.76942903301088,
+        "alt": 3166.121111500551
+      }
+    },
+    {
+      "type": "sensor_track",
+      "event_id": "1b4517f1-28ec-495e-80b1-f1c2714ed7b2",
+      "sim_time_s": 2.1000000000000005,
+      "sensor_id": "EWR-2",
+      "threat_id": "T-5",
+      "position": {
+        "lat": 31.00834356004427,
+        "lon": 51.820015843736606,
+        "alt": 5172.619616364533
+      }
+    },
+    {
+      "type": "engagement_order",
+      "event_id": "d8356e23-84d3-480a-90a6-ffe512db1fb4",
+      "sim_time_s": 90.89999999999911,
+      "battery_id": "DS-3",
+      "threat_id": "T-5",
+      "interceptor_id": "DS-3-SHOT-1",
+      "position": {
+        "lat": 32.78446028960445,
+        "lon": 40.66624294517631,
+        "alt": 0.0
+      }
+    },
+    {
+      "type": "sensor_track",
+      "event_id": "f750bdca-6c3b-4138-a0d7-f6ec62dc477b",
+      "sim_time_s": 0.9999999999999999,
+      "sensor_id": "TRK-1",
+      "threat_id": "T-4",
+      "position": {
+        "lat": 24.224966283645564,
+        "lon": 48.78607561164708,
+        "alt": 1507.6983622172968
+      }
+    },
+    {
+      "type": "sensor_track",
+      "event_id": "eccaa2c8-604e-4b52-a503-874832c7662e",
+      "sim_time_s": 0.9999999999999999,
+      "sensor_id": "TRK-1",
+      "threat_id": "T-5",
+      "position": {
+        "lat": 30.998767671821458,
+        "lon": 51.847116552649105,
+        "alt": 2463.246580666238
+      }
+    },
+    {
+      "type": "sensor_track",
+      "event_id": "6d4fec97-c027-467e-92a2-b3b7daefc947",
+      "sim_time_s": 2.1000000000000005,
+      "sensor_id": "EWR-2",
+      "threat_id": "T-4",
+      "position": {
+        "lat": 24.245090709173063,
+        "lon": 48.76942903301088,
+        "alt": 3166.121111500551
+      }
+    },
+    {
+      "type": "sensor_track",
+      "event_id": "b6208590-ca6b-4672-9d81-357780e95ca0",
+      "sim_time_s": 2.1000000000000005,
+      "sensor_id": "EWR-2",
+      "threat_id": "T-5",
+      "position": {
+        "lat": 31.00834356004427,
+        "lon": 51.820015843736606,
+        "alt": 5172.619616364533
+      }
+    },
+    {
+      "type": "engagement_order",
+      "event_id": "85cca2c7-a4be-466b-a15b-2fff7ef78083",
+      "sim_time_s": 90.89999999999911,
+      "battery_id": "DS-3",
+      "threat_id": "T-5",
+      "interceptor_id": "DS-3-SHOT-1",
+      "position": {
+        "lat": 32.78446028960445,
+        "lon": 40.66624294517631,
+        "alt": 0.0
+      }
+    },
+    {
+      "type": "engagement_order",
+      "event_id": "b2d75659-358c-4ec8-acd4-5532440c25dd",
+      "sim_time_s": 154.09999999999553,
+      "battery_id": "DS-3",
+      "threat_id": "T-4",
+      "interceptor_id": "DS-3-SHOT-2",
+      "position": {
+        "lat": 32.78446028960445,
+        "lon": 40.66624294517631,
+        "alt": 0.0
+      }
+    },
+    {
+      "type": "sensor_track",
+      "event_id": "454d4f44-0d79-4d22-9174-e0ce30856173",
+      "sim_time_s": 0.9999999999999999,
+      "sensor_id": "TRK-1",
+      "threat_id": "T-4",
+      "position": {
+        "lat": 24.224966283645564,
+        "lon": 48.78607561164708,
+        "alt": 1507.6983622172968
+      }
+    },
+    {
+      "type": "sensor_track",
+      "event_id": "e270759b-7c3c-403b-9af2-d0518f3186f2",
+      "sim_time_s": 0.9999999999999999,
+      "sensor_id": "TRK-1",
+      "threat_id": "T-5",
+      "position": {
+        "lat": 30.998767671821458,
+        "lon": 51.847116552649105,
+        "alt": 2463.246580666238
+      }
+    },
+    {
+      "type": "sensor_track",
+      "event_id": "981fdec0-9d1a-42da-a155-c75914163f4a",
+      "sim_time_s": 2.1000000000000005,
+      "sensor_id": "EWR-2",
+      "threat_id": "T-4",
+      "position": {
+        "lat": 24.245090709173063,
+        "lon": 48.76942903301088,
+        "alt": 3166.121111500551
+      }
+    },
+    {
+      "type": "sensor_track",
+      "event_id": "0e09e416-d138-4eb9-89fa-7361043c8813",
+      "sim_time_s": 2.1000000000000005,
+      "sensor_id": "EWR-2",
+      "threat_id": "T-5",
+      "position": {
+        "lat": 31.00834356004427,
+        "lon": 51.820015843736606,
+        "alt": 5172.619616364533
+      }
+    },
+    {
+      "type": "engagement_order",
+      "event_id": "b2c4c458-181c-47b4-9f6b-455c28de0aa0",
+      "sim_time_s": 90.89999999999911,
+      "battery_id": "DS-3",
+      "threat_id": "T-5",
+      "interceptor_id": "DS-3-SHOT-1",
+      "position": {
+        "lat": 32.78446028960445,
+        "lon": 40.66624294517631,
+        "alt": 0.0
+      }
+    },
+    {
+      "type": "engagement_order",
+      "event_id": "8db6a28f-a4dc-488b-8d8a-d648966cd979",
+      "sim_time_s": 154.09999999999553,
+      "battery_id": "DS-3",
+      "threat_id": "T-4",
+      "interceptor_id": "DS-3-SHOT-2",
+      "position": {
+        "lat": 32.78446028960445,
+        "lon": 40.66624294517631,
+        "alt": 0.0
+      }
+    },
+    {
+      "type": "event_intercept",
+      "event_id": "063d98a8-5580-46a7-85b5-b1b9f8a83df3",
+      "sim_time_s": 264.99999999999176,
+      "threat_id": "T-5",
+      "interceptor_id": "DS-3-SHOT-1",
+      "position": {
+        "lat": 33.296110310003655,
+        "lon": 45.34541011446011,
+        "alt": 246874.29675803342
+      },
+      "outcome": "success"
+    },
+    {
+      "type": "sensor_track",
+      "event_id": "f7a586e1-d20c-4a74-a4cf-76d28dcb2b0f",
+      "sim_time_s": 0.9999999999999999,
+      "sensor_id": "TRK-1",
+      "threat_id": "T-4",
+      "position": {
+        "lat": 24.224966283645564,
+        "lon": 48.78607561164708,
+        "alt": 1507.6983622172968
+      }
+    },
+    {
+      "type": "sensor_track",
+      "event_id": "10c5d6d5-928a-412e-84ac-ed313029290d",
+      "sim_time_s": 0.9999999999999999,
+      "sensor_id": "TRK-1",
+      "threat_id": "T-5",
+      "position": {
+        "lat": 30.998767671821458,
+        "lon": 51.847116552649105,
+        "alt": 2463.246580666238
+      }
+    },
+    {
+      "type": "sensor_track",
+      "event_id": "9a9c6e1f-700e-4f26-80c2-e1a1983c263c",
+      "sim_time_s": 2.1000000000000005,
+      "sensor_id": "EWR-2",
+      "threat_id": "T-4",
+      "position": {
+        "lat": 24.245090709173063,
+        "lon": 48.76942903301088,
+        "alt": 3166.121111500551
+      }
+    },
+    {
+      "type": "sensor_track",
+      "event_id": "0ec3d716-7822-4728-8f0a-4d11a863f73e",
+      "sim_time_s": 2.1000000000000005,
+      "sensor_id": "EWR-2",
+      "threat_id": "T-5",
+      "position": {
+        "lat": 31.00834356004427,
+        "lon": 51.820015843736606,
+        "alt": 5172.619616364533
+      }
+    },
+    {
+      "type": "engagement_order",
+      "event_id": "b4a1f773-9b7b-4baa-99d9-3de27f0abc55",
+      "sim_time_s": 90.89999999999911,
+      "battery_id": "DS-3",
+      "threat_id": "T-5",
+      "interceptor_id": "DS-3-SHOT-1",
+      "position": {
+        "lat": 32.78446028960445,
+        "lon": 40.66624294517631,
+        "alt": 0.0
+      }
+    },
+    {
+      "type": "engagement_order",
+      "event_id": "65f2d52b-b6f6-430c-9a09-a6151b518628",
+      "sim_time_s": 154.09999999999553,
+      "battery_id": "DS-3",
+      "threat_id": "T-4",
+      "interceptor_id": "DS-3-SHOT-2",
+      "position": {
+        "lat": 32.78446028960445,
+        "lon": 40.66624294517631,
+        "alt": 0.0
+      }
+    },
+    {
+      "type": "event_intercept",
+      "event_id": "d3f95265-723c-4c10-b3cf-cc9f93eac6a2",
+      "sim_time_s": 264.99999999999176,
+      "threat_id": "T-5",
+      "interceptor_id": "DS-3-SHOT-1",
+      "position": {
+        "lat": 33.296110310003655,
+        "lon": 45.34541011446011,
+        "alt": 246874.29675803342
+      },
+      "outcome": "success"
+    },
+    {
+      "type": "sensor_track",
+      "event_id": "4101a19c-116d-4573-979b-cea13aa62fc0",
+      "sim_time_s": 0.9999999999999999,
+      "sensor_id": "TRK-1",
+      "threat_id": "T-4",
+      "position": {
+        "lat": 24.224966283645564,
+        "lon": 48.78607561164708,
+        "alt": 1507.6983622172968
+      }
+    },
+    {
+      "type": "sensor_track",
+      "event_id": "751ee5fe-459d-4a5c-9d48-edb56fa49e69",
+      "sim_time_s": 0.9999999999999999,
+      "sensor_id": "TRK-1",
+      "threat_id": "T-5",
+      "position": {
+        "lat": 30.998767671821458,
+        "lon": 51.847116552649105,
+        "alt": 2463.246580666238
+      }
+    },
+    {
+      "type": "sensor_track",
+      "event_id": "64b000b1-0851-4bf3-b11c-0c89e585ba1c",
+      "sim_time_s": 2.1000000000000005,
+      "sensor_id": "EWR-2",
+      "threat_id": "T-4",
+      "position": {
+        "lat": 24.245090709173063,
+        "lon": 48.76942903301088,
+        "alt": 3166.121111500551
+      }
+    },
+    {
+      "type": "sensor_track",
+      "event_id": "3eb5cb45-adab-46d0-90e8-71aa403a73c5",
+      "sim_time_s": 2.1000000000000005,
+      "sensor_id": "EWR-2",
+      "threat_id": "T-5",
+      "position": {
+        "lat": 31.00834356004427,
+        "lon": 51.820015843736606,
+        "alt": 5172.619616364533
+      }
+    },
+    {
+      "type": "engagement_order",
+      "event_id": "968d84b4-d0ad-47bb-8034-b0e48ccd4ba8",
+      "sim_time_s": 90.89999999999911,
+      "battery_id": "DS-3",
+      "threat_id": "T-5",
+      "interceptor_id": "DS-3-SHOT-1",
+      "position": {
+        "lat": 32.78446028960445,
+        "lon": 40.66624294517631,
+        "alt": 0.0
+      }
+    },
+    {
+      "type": "engagement_order",
+      "event_id": "3a4a4fb7-8145-4d33-a85e-c2c2704ae8b2",
+      "sim_time_s": 154.09999999999553,
+      "battery_id": "DS-3",
+      "threat_id": "T-4",
+      "interceptor_id": "DS-3-SHOT-2",
+      "position": {
+        "lat": 32.78446028960445,
+        "lon": 40.66624294517631,
+        "alt": 0.0
+      }
+    },
+    {
+      "type": "event_intercept",
+      "event_id": "3e0036ee-2d4d-4525-b23a-91d3a1a1c3ab",
+      "sim_time_s": 264.99999999999176,
+      "threat_id": "T-5",
+      "interceptor_id": "DS-3-SHOT-1",
+      "position": {
+        "lat": 33.296110310003655,
+        "lon": 45.34541011446011,
+        "alt": 246874.29675803342
+      },
+      "outcome": "success"
+    },
+    {
+      "type": "sensor_track",
+      "event_id": "c0a7ec0a-37f9-497d-8dcc-00987c40e876",
+      "sim_time_s": 0.9999999999999999,
+      "sensor_id": "TRK-1",
+      "threat_id": "T-4",
+      "position": {
+        "lat": 24.224966283645564,
+        "lon": 48.78607561164708,
+        "alt": 1507.6983622172968
+      }
+    },
+    {
+      "type": "sensor_track",
+      "event_id": "fd715d49-4bc3-4d88-b106-5d5f34854e17",
+      "sim_time_s": 0.9999999999999999,
+      "sensor_id": "TRK-1",
+      "threat_id": "T-5",
+      "position": {
+        "lat": 30.998767671821458,
+        "lon": 51.847116552649105,
+        "alt": 2463.246580666238
+      }
+    },
+    {
+      "type": "sensor_track",
+      "event_id": "6439fdeb-6d26-426c-a158-6f7241860205",
+      "sim_time_s": 2.1000000000000005,
+      "sensor_id": "EWR-2",
+      "threat_id": "T-4",
+      "position": {
+        "lat": 24.245090709173063,
+        "lon": 48.76942903301088,
+        "alt": 3166.121111500551
+      }
+    },
+    {
+      "type": "sensor_track",
+      "event_id": "9efa708e-c333-4087-b0f0-a28d62263a47",
+      "sim_time_s": 2.1000000000000005,
+      "sensor_id": "EWR-2",
+      "threat_id": "T-5",
+      "position": {
+        "lat": 31.00834356004427,
+        "lon": 51.820015843736606,
+        "alt": 5172.619616364533
+      }
+    },
+    {
+      "type": "engagement_order",
+      "event_id": "21b83125-4a55-4d08-aef1-76e5848c213d",
+      "sim_time_s": 90.89999999999911,
+      "battery_id": "DS-3",
+      "threat_id": "T-5",
+      "interceptor_id": "DS-3-SHOT-1",
+      "position": {
+        "lat": 32.78446028960445,
+        "lon": 40.66624294517631,
+        "alt": 0.0
+      }
+    },
+    {
+      "type": "engagement_order",
+      "event_id": "22901c5e-dcc7-4eb2-a8eb-01afaab7bfe4",
+      "sim_time_s": 154.09999999999553,
+      "battery_id": "DS-3",
+      "threat_id": "T-4",
+      "interceptor_id": "DS-3-SHOT-2",
+      "position": {
+        "lat": 32.78446028960445,
+        "lon": 40.66624294517631,
+        "alt": 0.0
+      }
+    },
+    {
+      "type": "sensor_track",
+      "event_id": "e6c7abea-5c1e-48cd-b553-dd5d3674cc25",
+      "sim_time_s": 0.9999999999999999,
+      "sensor_id": "TRK-1",
+      "threat_id": "T-4",
+      "position": {
+        "lat": 24.224966283645564,
+        "lon": 48.78607561164708,
+        "alt": 1507.6983622172968
+      }
+    },
+    {
+      "type": "sensor_track",
+      "event_id": "d05354fd-8ab8-431e-ae51-45bb33184d2c",
+      "sim_time_s": 0.9999999999999999,
+      "sensor_id": "TRK-1",
+      "threat_id": "T-5",
+      "position": {
+        "lat": 30.998767671821458,
+        "lon": 51.847116552649105,
+        "alt": 2463.246580666238
+      }
+    },
+    {
+      "type": "sensor_track",
+      "event_id": "ec93eb7d-a939-48ed-a225-40ce78c7bc4d",
+      "sim_time_s": 2.1000000000000005,
+      "sensor_id": "EWR-2",
+      "threat_id": "T-4",
+      "position": {
+        "lat": 24.245090709173063,
+        "lon": 48.76942903301088,
+        "alt": 3166.121111500551
+      }
+    },
+    {
+      "type": "sensor_track",
+      "event_id": "755b192c-4a68-4f56-87c5-3e061572be0f",
+      "sim_time_s": 2.1000000000000005,
+      "sensor_id": "EWR-2",
+      "threat_id": "T-5",
+      "position": {
+        "lat": 31.00834356004427,
+        "lon": 51.820015843736606,
+        "alt": 5172.619616364533
+      }
+    },
+    {
+      "type": "engagement_order",
+      "event_id": "9fa70afa-52b7-41bb-bb84-b67a7bdb7c47",
+      "sim_time_s": 90.89999999999911,
+      "battery_id": "DS-3",
+      "threat_id": "T-5",
+      "interceptor_id": "DS-3-SHOT-1",
+      "position": {
+        "lat": 32.78446028960445,
+        "lon": 40.66624294517631,
+        "alt": 0.0
+      }
+    },
+    {
+      "type": "engagement_order",
+      "event_id": "85de9f29-7405-4374-9bb7-783d271e2507",
+      "sim_time_s": 154.09999999999553,
+      "battery_id": "DS-3",
+      "threat_id": "T-4",
+      "interceptor_id": "DS-3-SHOT-2",
+      "position": {
+        "lat": 32.78446028960445,
+        "lon": 40.66624294517631,
+        "alt": 0.0
+      }
+    },
+    {
+      "type": "sensor_track",
+      "event_id": "920208a5-0585-47c0-9d33-5bbb91d20902",
+      "sim_time_s": 0.9999999999999999,
+      "sensor_id": "TRK-1",
+      "threat_id": "T-4",
+      "position": {
+        "lat": 24.224966283645564,
+        "lon": 48.78607561164708,
+        "alt": 1507.6983622172968
+      }
+    },
+    {
+      "type": "sensor_track",
+      "event_id": "d14ecb73-3fc4-4fc4-b328-de4fb53202a1",
+      "sim_time_s": 0.9999999999999999,
+      "sensor_id": "TRK-1",
+      "threat_id": "T-5",
+      "position": {
+        "lat": 30.998767671821458,
+        "lon": 51.847116552649105,
+        "alt": 2463.246580666238
+      }
+    },
+    {
+      "type": "sensor_track",
+      "event_id": "b5709719-e726-4878-ad41-cea20d3b4b69",
+      "sim_time_s": 2.1000000000000005,
+      "sensor_id": "EWR-2",
+      "threat_id": "T-4",
+      "position": {
+        "lat": 24.245090709173063,
+        "lon": 48.76942903301088,
+        "alt": 3166.121111500551
+      }
+    },
+    {
+      "type": "sensor_track",
+      "event_id": "c1d47b3d-a862-452b-a624-dc233c36c3af",
+      "sim_time_s": 2.1000000000000005,
+      "sensor_id": "EWR-2",
+      "threat_id": "T-5",
+      "position": {
+        "lat": 31.00834356004427,
+        "lon": 51.820015843736606,
+        "alt": 5172.619616364533
+      }
+    },
+    {
+      "type": "engagement_order",
+      "event_id": "b2b0c62b-35da-4f12-891b-649fed05596e",
+      "sim_time_s": 90.89999999999911,
+      "battery_id": "DS-3",
+      "threat_id": "T-5",
+      "interceptor_id": "DS-3-SHOT-1",
+      "position": {
+        "lat": 32.78446028960445,
+        "lon": 40.66624294517631,
+        "alt": 0.0
+      }
+    },
+    {
+      "type": "engagement_order",
+      "event_id": "3762d158-3a35-4718-8ab2-ed94d93c7769",
+      "sim_time_s": 154.09999999999553,
+      "battery_id": "DS-3",
+      "threat_id": "T-4",
+      "interceptor_id": "DS-3-SHOT-2",
+      "position": {
+        "lat": 32.78446028960445,
+        "lon": 40.66624294517631,
+        "alt": 0.0
+      }
+    },
+    {
+      "type": "sensor_track",
+      "event_id": "d0778dc4-881b-4bc1-ae44-b16f30823ebf",
+      "sim_time_s": 0.9999999999999999,
+      "sensor_id": "TRK-1",
+      "threat_id": "T-4",
+      "position": {
+        "lat": 24.224966283645564,
+        "lon": 48.78607561164708,
+        "alt": 1507.6983622172968
+      }
+    },
+    {
+      "type": "sensor_track",
+      "event_id": "c80d392b-f511-4dac-964e-8f0129164441",
+      "sim_time_s": 0.9999999999999999,
+      "sensor_id": "TRK-1",
+      "threat_id": "T-5",
+      "position": {
+        "lat": 30.998767671821458,
+        "lon": 51.847116552649105,
+        "alt": 2463.246580666238
+      }
+    },
+    {
+      "type": "sensor_track",
+      "event_id": "21d7b9bb-f8a6-4959-bae7-b2cda17a5f80",
+      "sim_time_s": 2.1000000000000005,
+      "sensor_id": "EWR-2",
+      "threat_id": "T-4",
+      "position": {
+        "lat": 24.245090709173063,
+        "lon": 48.76942903301088,
+        "alt": 3166.121111500551
+      }
+    },
+    {
+      "type": "sensor_track",
+      "event_id": "ced3d971-3b20-4e90-bcca-0ac7039709f5",
+      "sim_time_s": 2.1000000000000005,
+      "sensor_id": "EWR-2",
+      "threat_id": "T-5",
+      "position": {
+        "lat": 31.00834356004427,
+        "lon": 51.820015843736606,
+        "alt": 5172.619616364533
+      }
+    },
+    {
+      "type": "engagement_order",
+      "event_id": "4b8d4f60-fe8e-4b75-8b82-e1d0b25e5957",
+      "sim_time_s": 90.89999999999911,
+      "battery_id": "DS-3",
+      "threat_id": "T-5",
+      "interceptor_id": "DS-3-SHOT-1",
+      "position": {
+        "lat": 32.78446028960445,
+        "lon": 40.66624294517631,
+        "alt": 0.0
+      }
+    },
+    {
+      "type": "engagement_order",
+      "event_id": "bd9d9afa-0019-4f01-a8d8-47409fd2fd83",
+      "sim_time_s": 154.09999999999553,
+      "battery_id": "DS-3",
+      "threat_id": "T-4",
+      "interceptor_id": "DS-3-SHOT-2",
+      "position": {
+        "lat": 32.78446028960445,
+        "lon": 40.66624294517631,
+        "alt": 0.0
+      }
+    },
+    {
+      "type": "sensor_track",
+      "event_id": "1f73aa8b-90d2-452e-ba6e-a85325bfbe66",
+      "sim_time_s": 0.9999999999999999,
+      "sensor_id": "TRK-1",
+      "threat_id": "T-4",
+      "position": {
+        "lat": 24.224966283645564,
+        "lon": 48.78607561164708,
+        "alt": 1507.6983622172968
+      }
+    },
+    {
+      "type": "sensor_track",
+      "event_id": "f014dc25-81d8-404a-b0ba-a329819d4ecf",
+      "sim_time_s": 0.9999999999999999,
+      "sensor_id": "TRK-1",
+      "threat_id": "T-5",
+      "position": {
+        "lat": 30.998767671821458,
+        "lon": 51.847116552649105,
+        "alt": 2463.246580666238
+      }
+    },
+    {
+      "type": "sensor_track",
+      "event_id": "c68ddeac-27d8-4d4e-91a0-75cd73c2b650",
+      "sim_time_s": 2.1000000000000005,
+      "sensor_id": "EWR-2",
+      "threat_id": "T-4",
+      "position": {
+        "lat": 24.245090709173063,
+        "lon": 48.76942903301088,
+        "alt": 3166.121111500551
+      }
+    },
+    {
+      "type": "sensor_track",
+      "event_id": "05424277-855b-45a7-a0d5-180a5100d061",
+      "sim_time_s": 2.1000000000000005,
+      "sensor_id": "EWR-2",
+      "threat_id": "T-5",
+      "position": {
+        "lat": 31.00834356004427,
+        "lon": 51.820015843736606,
+        "alt": 5172.619616364533
+      }
+    },
+    {
+      "type": "engagement_order",
+      "event_id": "725bf20d-4696-4fc8-b1e9-7fd1431b2788",
+      "sim_time_s": 90.89999999999911,
+      "battery_id": "DS-3",
+      "threat_id": "T-5",
+      "interceptor_id": "DS-3-SHOT-1",
+      "position": {
+        "lat": 32.78446028960445,
+        "lon": 40.66624294517631,
+        "alt": 0.0
+      }
+    },
+    {
+      "type": "engagement_order",
+      "event_id": "8576f8e5-782f-4e53-8048-02a41e457bb6",
+      "sim_time_s": 154.09999999999553,
+      "battery_id": "DS-3",
+      "threat_id": "T-4",
+      "interceptor_id": "DS-3-SHOT-2",
+      "position": {
+        "lat": 32.78446028960445,
+        "lon": 40.66624294517631,
+        "alt": 0.0
+      }
+    },
+    {
+      "type": "sensor_track",
+      "event_id": "d367b94b-0d6a-4b07-966f-1b064773165a",
+      "sim_time_s": 0.9999999999999999,
+      "sensor_id": "TRK-1",
+      "threat_id": "T-4",
+      "position": {
+        "lat": 24.224966283645564,
+        "lon": 48.78607561164708,
+        "alt": 1507.6983622172968
+      }
+    },
+    {
+      "type": "sensor_track",
+      "event_id": "704d552f-3b56-48d2-b6fd-4fc073e8dda4",
+      "sim_time_s": 0.9999999999999999,
+      "sensor_id": "TRK-1",
+      "threat_id": "T-5",
+      "position": {
+        "lat": 30.998767671821458,
+        "lon": 51.847116552649105,
+        "alt": 2463.246580666238
+      }
+    },
+    {
+      "type": "sensor_track",
+      "event_id": "00a3adda-75ea-419b-bda1-5ad1d35be1e7",
+      "sim_time_s": 2.1000000000000005,
+      "sensor_id": "EWR-2",
+      "threat_id": "T-4",
+      "position": {
+        "lat": 24.245090709173063,
+        "lon": 48.76942903301088,
+        "alt": 3166.121111500551
+      }
+    },
+    {
+      "type": "sensor_track",
+      "event_id": "2b2262d3-a028-4456-afd5-512959d24186",
+      "sim_time_s": 2.1000000000000005,
+      "sensor_id": "EWR-2",
+      "threat_id": "T-5",
+      "position": {
+        "lat": 31.00834356004427,
+        "lon": 51.820015843736606,
+        "alt": 5172.619616364533
+      }
+    },
+    {
+      "type": "engagement_order",
+      "event_id": "b555b30e-0786-4236-933d-d62fb7fe6651",
+      "sim_time_s": 90.89999999999911,
+      "battery_id": "DS-3",
+      "threat_id": "T-5",
+      "interceptor_id": "DS-3-SHOT-1",
+      "position": {
+        "lat": 32.78446028960445,
+        "lon": 40.66624294517631,
+        "alt": 0.0
+      }
+    },
+    {
+      "type": "engagement_order",
+      "event_id": "5bfc8b46-57f1-4843-b481-a8f5ea8eddc8",
+      "sim_time_s": 154.09999999999553,
+      "battery_id": "DS-3",
+      "threat_id": "T-4",
+      "interceptor_id": "DS-3-SHOT-2",
+      "position": {
+        "lat": 32.78446028960445,
+        "lon": 40.66624294517631,
+        "alt": 0.0
+      }
+    },
+    {
+      "type": "sensor_track",
+      "event_id": "8bd7516f-0ae1-408e-985e-713331c81f16",
+      "sim_time_s": 0.9999999999999999,
+      "sensor_id": "TRK-1",
+      "threat_id": "T-4",
+      "position": {
+        "lat": 24.224966283645564,
+        "lon": 48.78607561164708,
+        "alt": 1507.6983622172968
+      }
+    },
+    {
+      "type": "sensor_track",
+      "event_id": "44bbc3f2-78bb-4b9e-9ce7-13a6c25b0902",
+      "sim_time_s": 0.9999999999999999,
+      "sensor_id": "TRK-1",
+      "threat_id": "T-5",
+      "position": {
+        "lat": 30.998767671821458,
+        "lon": 51.847116552649105,
+        "alt": 2463.246580666238
+      }
+    },
+    {
+      "type": "sensor_track",
+      "event_id": "2f32e20d-105c-42cb-aa74-a6e35536066a",
+      "sim_time_s": 2.1000000000000005,
+      "sensor_id": "EWR-2",
+      "threat_id": "T-4",
+      "position": {
+        "lat": 24.245090709173063,
+        "lon": 48.76942903301088,
+        "alt": 3166.121111500551
+      }
+    },
+    {
+      "type": "sensor_track",
+      "event_id": "007d5b2b-1f5f-46eb-b5d7-846a332a5f0f",
+      "sim_time_s": 2.1000000000000005,
+      "sensor_id": "EWR-2",
+      "threat_id": "T-5",
+      "position": {
+        "lat": 31.00834356004427,
+        "lon": 51.820015843736606,
+        "alt": 5172.619616364533
+      }
+    },
+    {
+      "type": "engagement_order",
+      "event_id": "d70015ed-4fcb-4b82-b61a-4ed0fbc6852e",
+      "sim_time_s": 90.89999999999911,
+      "battery_id": "DS-3",
+      "threat_id": "T-5",
+      "interceptor_id": "DS-3-SHOT-1",
+      "position": {
+        "lat": 32.78446028960445,
+        "lon": 40.66624294517631,
+        "alt": 0.0
+      }
+    },
+    {
+      "type": "engagement_order",
+      "event_id": "e5edf903-5e01-4ba4-9664-8d6520294de6",
+      "sim_time_s": 154.09999999999553,
+      "battery_id": "DS-3",
+      "threat_id": "T-4",
+      "interceptor_id": "DS-3-SHOT-2",
+      "position": {
+        "lat": 32.78446028960445,
+        "lon": 40.66624294517631,
+        "alt": 0.0
+      }
+    },
+    {
+      "type": "event_intercept",
+      "event_id": "5f29e7f3-d576-499f-98ae-b54b770ae910",
+      "sim_time_s": 264.99999999999176,
+      "threat_id": "T-5",
+      "interceptor_id": "DS-3-SHOT-1",
+      "position": {
+        "lat": 33.296110310003655,
+        "lon": 45.34541011446011,
+        "alt": 246874.29675803342
+      },
+      "outcome": "success"
+    },
+    {
+      "type": "sensor_track",
+      "event_id": "f1896ecd-2e01-4e4e-a245-30681ca027e5",
+      "sim_time_s": 0.9999999999999999,
+      "sensor_id": "TRK-1",
+      "threat_id": "T-4",
+      "position": {
+        "lat": 24.224966283645564,
+        "lon": 48.78607561164708,
+        "alt": 1507.6983622172968
+      }
+    },
+    {
+      "type": "sensor_track",
+      "event_id": "3ecdcd84-8111-425e-aa6b-e6d414ad3e4f",
+      "sim_time_s": 0.9999999999999999,
+      "sensor_id": "TRK-1",
+      "threat_id": "T-5",
+      "position": {
+        "lat": 30.998767671821458,
+        "lon": 51.847116552649105,
+        "alt": 2463.246580666238
+      }
+    },
+    {
+      "type": "sensor_track",
+      "event_id": "ba48df47-2100-4898-8f59-237da8347479",
+      "sim_time_s": 2.1000000000000005,
+      "sensor_id": "EWR-2",
+      "threat_id": "T-4",
+      "position": {
+        "lat": 24.245090709173063,
+        "lon": 48.76942903301088,
+        "alt": 3166.121111500551
+      }
+    },
+    {
+      "type": "sensor_track",
+      "event_id": "3a8ce992-eba8-4150-8d33-61d2b4e918e2",
+      "sim_time_s": 2.1000000000000005,
+      "sensor_id": "EWR-2",
+      "threat_id": "T-5",
+      "position": {
+        "lat": 31.00834356004427,
+        "lon": 51.820015843736606,
+        "alt": 5172.619616364533
+      }
+    },
+    {
+      "type": "engagement_order",
+      "event_id": "7090a835-a4dd-4f06-a56b-8f1f5618bf79",
+      "sim_time_s": 90.89999999999911,
+      "battery_id": "DS-3",
+      "threat_id": "T-5",
+      "interceptor_id": "DS-3-SHOT-1",
+      "position": {
+        "lat": 32.78446028960445,
+        "lon": 40.66624294517631,
+        "alt": 0.0
+      }
+    },
+    {
+      "type": "engagement_order",
+      "event_id": "039990ea-03c6-4e32-9991-ae6fd7ad24e2",
+      "sim_time_s": 154.09999999999553,
+      "battery_id": "DS-3",
+      "threat_id": "T-4",
+      "interceptor_id": "DS-3-SHOT-2",
+      "position": {
+        "lat": 32.78446028960445,
+        "lon": 40.66624294517631,
+        "alt": 0.0
+      }
+    },
+    {
+      "type": "event_intercept",
+      "event_id": "e4357f10-cfbd-4fe3-a44f-a34dd03f06cc",
+      "sim_time_s": 264.99999999999176,
+      "threat_id": "T-5",
+      "interceptor_id": "DS-3-SHOT-1",
+      "position": {
+        "lat": 33.296110310003655,
+        "lon": 45.34541011446011,
+        "alt": 246874.29675803342
+      },
+      "outcome": "success"
+    },
+    {
+      "type": "event_intercept",
+      "event_id": "394503d3-92b3-450c-995f-209152d2b4a3",
+      "sim_time_s": 323.10000000000497,
+      "threat_id": "T-4",
+      "interceptor_id": "DS-3-SHOT-2",
+      "position": {
+        "lat": 30.11776397674293,
+        "lon": 43.91165472190382,
+        "alt": 299578.72248109087
+      },
+      "outcome": "success"
+    }
+  ]
+}

@@ -179,6 +179,11 @@ export function TracksPanel({
                           <span style={styles.rowType}>
                             {track.type === 'interceptor' ? 'INTERCEPTOR' : 'THREAT'}
                           </span>
+                          {track.salvoId && (
+                            <span style={styles.salvoBadge}>
+                              SALVO ×{track.salvoSize}
+                            </span>
+                          )}
                         </div>
 
                         <span
@@ -511,6 +516,15 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: 10,
     letterSpacing: '0.14em',
   },
+  salvoBadge: {
+    ...monoText,
+    fontSize: 9,
+    letterSpacing: '0.14em',
+    color: '#ffb400',
+    background: 'rgba(255, 180, 0, 0.12)',
+    border: '1px solid rgba(255, 180, 0, 0.35)',
+    padding: '2px 6px',
+  } as React.CSSProperties,
   rowStatus: {
     ...monoText,
     fontSize: 10,

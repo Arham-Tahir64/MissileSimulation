@@ -125,6 +125,7 @@ export function AppShell() {
             ? marker.event.battery_id
             : null,
       event: marker.event,
+      pkScore: null,
     });
   };
 

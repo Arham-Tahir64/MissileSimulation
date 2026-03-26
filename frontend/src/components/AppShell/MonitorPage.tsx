@@ -1,5 +1,6 @@
 import { MonitorSection } from '../../store/dashboardStore';
 import { AlertFeedPanel } from '../HUD/AlertFeedPanel';
+import { BatteryGanttChart } from '../HUD/BatteryGanttChart';
 import { DefenseAssetsPanel } from '../HUD/DefenseAssetsPanel';
 import { SelectionDetailPanel } from '../HUD/SelectionDetailPanel';
 import { TracksPanel } from '../HUD/TracksPanel';
@@ -34,9 +35,19 @@ export function MonitorPage({
   onToggleDetail: () => void;
 }) {
   const latestAlerts = snapshot.alerts.slice(0, 5);
+  const { saturated, activeTracks, batteryCapacity } = snapshot.metrics;
 
   return (
     <div style={styles.wrap}>
+      {saturated && (
+        <div style={styles.saturationBanner}>
+          <span style={styles.saturationIcon}>▲</span>
+          <span style={styles.saturationText}>
+            SATURATION ALERT — {activeTracks} ACTIVE THREATS / {batteryCapacity} BATTERY SLOTS
+          </span>
+          <span style={styles.saturationIcon}>▲</span>
+        </div>
+      )}
       <div style={styles.pageHeader}>
         <div style={styles.headerTitle}>Monitor</div>
         <div style={styles.headerActions}>
@@ -93,6 +104,12 @@ export function MonitorPage({
         </div>
       </aside>
 
+      {monitorSection === 'assets' && (
+        <div style={styles.ganttPanel}>
+          <BatteryGanttChart />
+        </div>
+      )}
+
       {detailOpen && snapshot.selection.kind !== 'none' && (
         <aside style={styles.detailDrawer}>
           <SelectionDetailPanel selection={snapshot.selection} />
@@ -129,6 +146,31 @@ const styles: Record<string, React.CSSProperties> = {
     inset: '88px 18px 18px 18px',
     pointerEvents: 'none',
   },
+  saturationBanner: {
+    position: 'absolute',
+    top: -44,
+    left: 0,
+    right: 0,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    padding: '8px 16px',
+    background: 'rgba(255, 140, 0, 0.18)',
+    border: '1px solid rgba(255, 180, 0, 0.5)',
+    pointerEvents: 'none',
+    animation: 'saturationPulse 1.4s ease-in-out infinite',
+  },
+  saturationIcon: {
+    color: '#ffb400',
+    fontSize: 12,
+  },
+  saturationText: {
+    ...monoText,
+    color: '#ffb400',
+    fontSize: 11,
+    letterSpacing: '0.18em',
+  },
   pageHeader: {
     position: 'absolute',
     top: 0,
@@ -163,7 +205,7 @@ const styles: Record<string, React.CSSProperties> = {
     position: 'absolute',
     top: 54,
     left: 0,
-    bottom: 98,
+    bottom: 218,   // extra room for gantt when assets tab active
     width: 338,
     display: 'grid',
     gridTemplateRows: 'auto minmax(0, 1fr)',
@@ -189,6 +231,13 @@ const styles: Record<string, React.CSSProperties> = {
   },
   sidebarBody: {
     minHeight: 0,
+  },
+  ganttPanel: {
+    position: 'absolute',
+    left: 0,
+    bottom: 98,
+    width: 338,
+    pointerEvents: 'auto',
   },
   detailDrawer: {
     position: 'absolute',

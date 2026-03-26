@@ -5,7 +5,8 @@ export type DefenseAssetId =
   | 'davids_sling'
   | 'arrow_battery'
   | 'search_radar'
-  | 'tracking_radar';
+  | 'tracking_radar'
+  | 'ecm_jammer';
 
 export interface DefenseAssetConfig {
   id: DefenseAssetId;
@@ -88,6 +89,19 @@ export const DEFENSE_ASSET_CONFIGS: DefenseAssetConfig[] = [
     detectionRadiusM: 1_050_000,
     trackingLatencyS: 0.8,
     maxTracks: 8,
+  },
+  {
+    id: 'ecm_jammer',
+    entityType: 'sensor',
+    trajectoryType: 'stationary',
+    label: 'ECM Jammer',
+    shortLabel: 'ECM',
+    description: 'Electronic countermeasure station — degrades enemy radar and guidance systems.',
+    cssColor: '#ce93d8',
+    designatorPrefix: 'ECM',
+    detectionRadiusM: 600_000,
+    trackingLatencyS: 0,
+    maxTracks: 0,
   },
 ];
 

@@ -1,5 +1,94 @@
 import { SelectionDetail } from './hudSelectors';
+import { EntityState } from '../../types/entity';
 import { glassPanel, hudTheme, monoText, sectionTitle } from './hudTheme';
+
+/** Max reference values for the gauge bars. */
+const ALT_MAX_FT  = 1_200_000; // ~365 km — covers most ballistic apogees
+const VEL_MAX_MS  = 7_000;     // Mach ~20 upper bound for display
+
+function TelemetryStrip({ entity }: { entity: EntityState }) {
+  const altFt     = entity.position.alt * 3.28084;
+  const altPct    = Math.min(100, (altFt / ALT_MAX_FT) * 100);
+  const velMs     = entity.velocity_ms;
+  const velPct    = Math.min(100, (velMs / VEL_MAX_MS) * 100);
+  const machNum   = (velMs / 343).toFixed(1);
+
+  const altColor  = altFt > 500_000 ? hudTheme.amberSoft : hudTheme.cyanSoft;
+  const velColor  = velMs > 3_000   ? '#ff8a80'          : hudTheme.cyanSoft;
+
+  return (
+    <div style={telStyles.wrap}>
+      <div style={telStyles.title}>TELEMETRY</div>
+      <div style={telStyles.gaugeRow}>
+        <span style={telStyles.gaugeLabel}>ALT</span>
+        <div style={telStyles.track}>
+          <div style={{ ...telStyles.fill, width: `${altPct}%`, background: altColor }} />
+        </div>
+        <span style={{ ...telStyles.gaugeValue, color: altColor }}>
+          {altFt.toLocaleString(undefined, { maximumFractionDigits: 0 })} FT
+        </span>
+      </div>
+      <div style={telStyles.gaugeRow}>
+        <span style={telStyles.gaugeLabel}>VEL</span>
+        <div style={telStyles.track}>
+          <div style={{ ...telStyles.fill, width: `${velPct}%`, background: velColor }} />
+        </div>
+        <span style={{ ...telStyles.gaugeValue, color: velColor }}>
+          M {machNum}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+const telStyles: Record<string, React.CSSProperties> = {
+  wrap: {
+    background: 'rgba(255,255,255,0.03)',
+    padding: '10px 12px',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 8,
+  },
+  title: {
+    ...monoText,
+    fontSize: 10,
+    letterSpacing: '0.16em',
+    color: hudTheme.faint,
+    marginBottom: 2,
+  } as React.CSSProperties,
+  gaugeRow: {
+    display: 'grid',
+    gridTemplateColumns: '28px minmax(0,1fr) 90px',
+    alignItems: 'center',
+    gap: 8,
+  },
+  gaugeLabel: {
+    ...monoText,
+    fontSize: 9,
+    letterSpacing: '0.12em',
+    color: hudTheme.muted,
+    textAlign: 'right' as const,
+  } as React.CSSProperties,
+  track: {
+    height: 6,
+    background: 'rgba(255,255,255,0.07)',
+    position: 'relative' as const,
+    overflow: 'hidden' as const,
+  },
+  fill: {
+    position: 'absolute' as const,
+    top: 0,
+    left: 0,
+    height: '100%',
+    transition: 'width 0.3s ease',
+  },
+  gaugeValue: {
+    ...monoText,
+    fontSize: 10,
+    letterSpacing: '0.1em',
+    textAlign: 'right' as const,
+  } as React.CSSProperties,
+};
 
 export function SelectionDetailPanel({
   selection,
@@ -68,6 +157,10 @@ export function SelectionDetailPanel({
           </div>
         ))}
       </div>
+
+      {selection.kind === 'track' && selection.entity && (
+        <TelemetryStrip entity={selection.entity} />
+      )}
 
       {detailRows.length > 0 && (
         <div style={styles.detailBlock}>

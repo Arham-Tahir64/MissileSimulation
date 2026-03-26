@@ -1,5 +1,6 @@
 import { useDeferredValue, useMemo, useState } from 'react';
 import { DefenseAssetRow } from './hudSelectors';
+import { getDefenseAssetConfigByDesignator } from '../../config/defenseAssets';
 import { buttonReset, glassPanel, hudTheme, monoText, sectionTitle } from './hudTheme';
 
 type AssetRoleFilter = 'all' | 'radar' | 'battery';
@@ -189,6 +190,32 @@ function AssetGroup({
                 <MetricPill label={isRadar ? 'TRACKS' : 'TARGET'} value={isRadar ? String(asset.trackCount) : asset.currentTargetId ?? 'READY'} tone={isRadar ? 'amber' : asset.currentTargetId ? 'cyan' : 'muted'} />
                 <MetricPill label="STATE" value={asset.readiness} tone={asset.status === 'COOLDOWN' ? 'amber' : 'text'} />
               </div>
+
+              {asset.role === 'battery' && asset.status === 'COOLDOWN' && (() => {
+                const cfg     = getDefenseAssetConfigByDesignator(asset.assetState.designator);
+                const totalCd = cfg?.cooldownS ?? 20;
+                const remaining = asset.assetState.cooldown_remaining_s ?? 0;
+                const elapsed   = Math.max(0, totalCd - remaining);
+                const pct       = Math.min(100, (elapsed / totalCd) * 100);
+                const readySoon = remaining <= 4;
+                return (
+                  <div style={styles.cooldownBar}>
+                    <div style={styles.cooldownTrack}>
+                      <div style={{
+                        ...styles.cooldownFill,
+                        width: `${pct}%`,
+                        background: readySoon ? '#00e5ff' : '#b06a00',
+                      }} />
+                    </div>
+                    <span style={{
+                      ...styles.cooldownLabel,
+                      color: readySoon ? hudTheme.cyanSoft : '#b06a00',
+                    }}>
+                      {readySoon ? '2ND SHOT READY' : `CD ${remaining.toFixed(1)}S`}
+                    </span>
+                  </div>
+                );
+              })()}
 
               {asset.latestEventLabel && (
                 <div style={styles.rowNote}>{asset.latestEventLabel}</div>
@@ -498,6 +525,34 @@ const styles: Record<string, React.CSSProperties> = {
     ...monoText,
     fontSize: 10,
   },
+  cooldownBar: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 8,
+  },
+  cooldownTrack: {
+    flex: 1,
+    height: 4,
+    background: 'rgba(255,255,255,0.07)',
+    position: 'relative' as const,
+    overflow: 'hidden' as const,
+  },
+  cooldownFill: {
+    position: 'absolute' as const,
+    top: 0,
+    left: 0,
+    height: '100%',
+    transition: 'width 0.5s linear',
+  },
+  cooldownLabel: {
+    ...monoText,
+    fontSize: 9,
+    letterSpacing: '0.14em',
+    whiteSpace: 'nowrap' as const,
+    minWidth: 90,
+    textAlign: 'right' as const,
+  } as React.CSSProperties,
   rowNote: {
     color: hudTheme.faint,
     fontSize: 11,
